@@ -50,7 +50,7 @@ do
   windowname=$(xdotool getwindowfocus getwindowname)
   mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
   echo -ne "\033[0;0H"
-  printf "%-${_2cols}.${_2cols}s" "Batt: ${battery_capacity}% $battery_status | Temp: ${temp}°C | Mem: ${mem}% | ${windowname}"
+  printf "%-${_2cols}.${_2cols}s" "Batt: ${battery_capacity}% $battery_status | Temp: ${temp}C | Mem: ${mem}% | ${windowname}"
   echo -ne "\033[0;${_2cols}H"
   printf "%${cols}s" "$date"
   sleep 10
