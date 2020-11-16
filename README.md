@@ -6,4 +6,6 @@
 
 ## using it
 
-`./xtermumberbar.sh`
+`./xtermumberbar.sh $width`
+
+where width is the width of the bar in characters (depends on screen resolution)
