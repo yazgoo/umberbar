@@ -33,15 +33,25 @@ extractmem() {
   echo $(( ( $memtotal - $memfree - $cached - $sreclaimable + $shmem ) * 100 / $memtotal ))
 }
 
+cols=$(( $COLUMNS / 3 ))
+_2cols=$(( $cols* 2 )) 
+
 while true
 do
   battery_capacity=$(colorize $(cat /sys/class/power_supply/cw2015-battery/capacity) 255:0:0 20 255:165:0 50 0:165:0)
   battery_status=$(cat /sys/class/power_supply/cw2015-battery/status)
+  if [ $battery_status = "Discharging" ]
+  then
+    time_to_empty=$(cat /sys/class/power_supply/cw2015-battery/time_to_empty_now)
+    battery_status="($(( $time_to_empty / 60 )):$(( $time_to_empty - ($time_to_empty / 60 * 60) )))"
+  fi
   date=$(date)
   temp=$(colorize $[ $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ] 0:165:0 40 255:165:0 70 255:0:0)
   windowname=$(xdotool getwindowfocus getwindowname)
   mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
-  clear
-  echo -n "${battery_capacity}% $battery_status | $date | ${temp}C | mem ${mem}% | ${windowname:0:40}"
+  echo -ne "\033[0;0H"
+  printf "%-${_2cols}.${_2cols}s" "Batt: ${battery_capacity}% $battery_status | Temp: ${temp}°C | Mem: ${mem}% | ${windowname}"
+  echo -ne "\033[0;${_2cols}H"
+  printf "%${cols}s" "$date"
   sleep 10
 done
