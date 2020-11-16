@@ -1,8 +1,8 @@
 # umberbar
 
-:ram: minimalistic xmobar inspired status bar 
+:ram: minimalistic xmobar inspired status bar, in terminal. 
 
-![screenshot](screenshot.png)
+![screenshot with trayer](screenshot.png)
 
 ## using it
 
