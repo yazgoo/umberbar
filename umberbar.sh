@@ -135,14 +135,23 @@ do
   idle_total=$(cpu_idle_total)
   cpu=$(colorize $(cpu_percent "$idle_total" "$last_idle_total") 0:165:0 40 255:165:0 70 255:0:0)
   last_idle_total="$idle_total"
+  previous_windowname_len=${#windowname}
   windowname=$(xdotool getwindowfocus getwindowname)
+  windowname_len=${#windowname}
+  delta_window_name=$(( previous_windowname_len - windowname_len ))
+  if [ $delta_window_name -gt 0 ]
+  then
+    additional_spaces=$(print "%${delta_window_name}s" "")
+  else
+    additional_spaces=""
+  fi
   mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
   echo -ne "\033[0;0H"
   sep=$(grey "")
-  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}% $battery_status $sep $(grey " ")${cpu}% $sep $(grey "")${temp}°C $sep $(grey " ")${mem}% $sep $(grey " ") ${windowname}"
+  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}$(grey "% $battery_status") $sep $(grey " ")${cpu}$(grey "%") $sep $(grey "")${temp}$(grey "°C") $sep $(grey " ")${mem}$(grey "%") $sep $(grey " ") ${windowname}${additional_spaces}"
   date_str_len=${#date}
   date_cursor_pos=$(( COLUMNS - date_str_len ))
   echo -ne "\033[0;${date_cursor_pos}H"
   echo -ne $date
-  sleep 10
+  sleep 2
 done
