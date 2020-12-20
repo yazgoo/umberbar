@@ -153,5 +153,5 @@ do
   date_cursor_pos=$(( COLUMNS - date_str_len ))
   echo -ne "\033[0;${date_cursor_pos}H"
   echo -ne $date
-  sleep 2
+  sleep 10
 done
