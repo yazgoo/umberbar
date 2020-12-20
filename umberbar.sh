@@ -67,8 +67,44 @@ cpu_percent() {
   echo $(( 100 - ( (100 * (idle - last_idle) / (total - last_total))) )) 
 }
 
+battery_logo() {
+  if [ $1 -lt 10 ]
+  then
+    echo ""
+  elif [ $1 -lt 20 ]
+  then 
+    echo ""
+  elif [ $1 -lt 30 ]
+  then 
+    echo ""
+  elif [ $1 -lt 40 ]
+  then 
+    echo ""
+  elif [ $1 -lt 50 ]
+  then
+  echo ""
+  elif [ $1 -lt 60 ]
+  then 
+    echo ""
+  elif [ $1 -lt 70 ]
+  then
+    echo ""
+  elif [ $1 -lt 80 ]
+  then
+    echo ""
+  elif [ $1 -lt 90 ]
+  then
+    echo ""
+  else
+    echo ""
+  fi
+}
+grey() {
+  printf "\033[38:2:%sm%s\033[m\n" "150:150:150" "$1"
+}
+
 cols=$(( $COLUMNS / 3 ))
-_2cols=$(( $cols* 2 )) 
+_2cols=$(( $cols * 2 )) 
 
 battery_path=/sys/class/power_supply/cw2015-battery
 if [ ! -e "$battery_path" ]
@@ -79,8 +115,13 @@ fi
 last_idle_total="0 0"
 while true
 do
-  battery_capacity=$(colorize $(cat $battery_path/capacity) 255:0:0 20 255:165:0 50 0:165:0)
+  battery_capacity=$(cat $battery_path/capacity)
   battery_status=$(cat $battery_path/status)
+  if [ $battery_status = "Full" ]
+  then
+    battery_capacity=100
+  fi
+  battery_capacity_colored=$(colorize $battery_capacity 255:0:0 20 255:165:0 50 0:165:0)
   if [ $battery_status = "Discharging" ]
   then
     if [ -e $battery_path/time_to_empty_now ]
@@ -97,8 +138,11 @@ do
   windowname=$(xdotool getwindowfocus getwindowname)
   mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
   echo -ne "\033[0;0H"
-  printf "%-${_2cols}.${_2cols}s" "Batt: ${battery_capacity}% $battery_status | Cpu: ${cpu}% | Temp: ${temp}C | Mem: ${mem}% | ${windowname}"
-  echo -ne "\033[0;${_2cols}H"
-  printf "%${cols}s" "$date"
+  sep=$(grey "")
+  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}% $battery_status $sep $(grey " ")${cpu}% $sep $(grey "")${temp}°C $sep $(grey " ")${mem}% $sep $(grey " ") ${windowname}"
+  date_str_len=${#date}
+  date_cursor_pos=$(( COLUMNS - date_str_len ))
+  echo -ne "\033[0;${date_cursor_pos}H"
+  echo -ne $date
   sleep 10
 done
