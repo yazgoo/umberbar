@@ -17,7 +17,7 @@ colorize() {
     color=$third_color
   fi
     
-  printf "\033[38:2:%sm%s\033[m\n" "$color" "$1"
+  printf "\033[38:2:%sm%3d\033[m\n" "$color" "$1"
 }
 
 extractmeminfo() {
@@ -99,6 +99,7 @@ battery_logo() {
     echo ""
   fi
 }
+
 grey() {
   printf "\033[38:2:%sm%s\033[m\n" "150:150:150" "$1"
 }
@@ -148,7 +149,8 @@ do
   mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
   echo -ne "\033[0;0H"
   sep=$(grey "")
-  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}$(grey "% $battery_status") $sep $(grey " ")${cpu}$(grey "%") $sep $(grey "")${temp}$(grey "°C") $sep $(grey " ")${mem}$(grey "%") $sep $(grey " ") ${windowname}${additional_spaces}"
+  # $(grey "% $battery_status") 
+  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}$(grey %) $sep $(grey " ")${cpu}$(grey "%") $sep $(grey "")${temp}$(grey "°C") $sep $(grey " ")${mem}$(grey "%") $sep $(grey " ") ${windowname}${additional_spaces}"
   date_str_len=${#date}
   date_cursor_pos=$(( COLUMNS - date_str_len ))
   echo -ne "\033[0;${date_cursor_pos}H"

@@ -4,8 +4,10 @@
 
 ![screenshot with trayer](screenshot.png)
 
+# prerequisites 
+
+you need [nerdfonts](https://www.nerdfonts.com/) installed, as well as xterm.
+
 ## using it
 
-`./xtermumberbar.sh $width`
-
-where width is the width of the bar in characters (depends on screen resolution)
+`./xtermumberbar.sh
