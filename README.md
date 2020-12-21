@@ -2,7 +2,7 @@
 
 :ram: minimalistic xmobar inspired status bar, in terminal. 
 
-![screenshot with trayer](screenshot.png)
+![screenshot with trayer](screenshotsmall.png)
 
 # prerequisites 
 
