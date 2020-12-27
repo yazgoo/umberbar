@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-tput civis
 
 colorize() {
   first_color=$2
@@ -16,7 +15,6 @@ colorize() {
   else
     color=$third_color
   fi
-    
   printf "\033[38:2:%sm%3d\033[m\n" "$color" "$1"
 }
 
@@ -100,12 +98,49 @@ battery_logo() {
   fi
 }
 
+volume_logo() {
+  if [ $volume -eq 0 ]
+  then
+    echo "🔇"
+  else
+    echo "🔊"
+  fi
+}
+
 grey() {
   printf "\033[38:2:%sm%s\033[m\n" "150:150:150" "$1"
 }
 
-cols=$(( $COLUMNS / 3 ))
-_2cols=$(( $cols * 2 )) 
+gauge() {
+  colors="0:165:0 "$4" 255:165:0 "$5" 255:0:0"
+  if [ -n "$6" ]
+  then
+    colors=$(echo $colors|tr ' ' '\n'|tac|tr '\n' ' ')
+  fi
+  echo -ne "$(grey "$1")$(colorize "$2" $colors)$(grey "$3") $sep "
+}
+
+draw_date() {
+  date_str_len=${#date}
+  date_cursor_pos=$(( COLUMNS - date_str_len - 2 ))
+  echo -ne "\033[0;${date_cursor_pos}H"
+  echo -ne $(grey " ")
+  echo -ne "$date"
+}
+
+draw_line() {
+  echo -ne "\033[0;0H"
+  sep=$(grey "")
+  blogo=$(battery_logo $battery_capacity)
+  vlogo=$(volume_logo $volume)
+  gauge "$blogo" "$battery_capacity"         "%"  20 50 reverse_colors
+  gauge " "     "$cpu"                      "%"  40 70
+  gauge ""      "$temp"                     "°C" 40 70
+  gauge " "     "$mem"                      "%"  30 70
+  gauge "$vlogo" "$volume"                   "%"  60 120
+  echo -ne "$(grey " ") ${windowname}${additional_spaces}"
+  draw_date
+}
 
 battery_path=/sys/class/power_supply/cw2015-battery
 if [ ! -e "$battery_path" ]
@@ -113,6 +148,7 @@ then
   battery_path=/sys/class/power_supply/BAT0
 fi
 
+tput civis
 last_idle_total="0 0"
 while true
 do
@@ -122,19 +158,10 @@ do
   then
     battery_capacity=100
   fi
-  battery_capacity_colored=$(colorize $battery_capacity 255:0:0 20 255:165:0 50 0:165:0)
-  if [ $battery_status = "Discharging" ]
-  then
-    if [ -e $battery_path/time_to_empty_now ]
-    then
-      time_to_empty=$(cat $battery_path/time_to_empty_now)
-      battery_status="($(( $time_to_empty / 60 )):$(( $time_to_empty - ($time_to_empty / 60 * 60) )))"
-    fi
-  fi
-  date=$(date)
-  temp=$(colorize $[ $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ] 0:165:0 40 255:165:0 70 255:0:0)
+  date=$(date | sed -E 's/:[0-9]{2} .*//')
+  temp=$[ $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ]
   idle_total=$(cpu_idle_total)
-  cpu=$(colorize $(cpu_percent "$idle_total" "$last_idle_total") 0:165:0 40 255:165:0 70 255:0:0)
+  cpu=$(cpu_percent "$idle_total" "$last_idle_total")
   last_idle_total="$idle_total"
   previous_windowname_len=${#windowname}
   windowname=$(xdotool getwindowfocus getwindowname)
@@ -146,14 +173,13 @@ do
   else
     additional_spaces=""
   fi
-  mem=$(colorize $(extractmem) 0:165:0 30 255:165:0 70 255:0:0)
-  echo -ne "\033[0;0H"
-  sep=$(grey "")
-  # $(grey "% $battery_status") 
-  echo -ne "$(grey $(battery_logo $battery_capacity))${battery_capacity_colored}$(grey %) $sep $(grey " ")${cpu}$(grey "%") $sep $(grey "")${temp}$(grey "°C") $sep $(grey " ")${mem}$(grey "%") $sep $(grey " ") ${windowname}${additional_spaces}"
-  date_str_len=${#date}
-  date_cursor_pos=$(( COLUMNS - date_str_len ))
-  echo -ne "\033[0;${date_cursor_pos}H"
-  echo -ne $date
+  mem=$(extractmem)
+  mixer_out=$(amixer sget Master)
+  volume=$(echo "$mixer_out"|grep -oE '[0-9]+%'|sed 's/%//'|head -1)
+  if echo "$mixer_out" | grep '\[off\]' >/dev/null
+  then
+    volume=0
+  fi
+  draw_line
   sleep 10
 done
