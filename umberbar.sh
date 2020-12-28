@@ -113,7 +113,7 @@ grey() {
 
 gauge() {
   colors="0:165:0 "$4" 255:165:0 "$5" 255:0:0"
-  if [ -n "$6" ]
+  if [ "$4" -gt "$5" ]
   then
     colors=$(echo $colors|tr ' ' '\n'|tac|tr '\n' ' ')
   fi
@@ -133,7 +133,7 @@ draw_line() {
   sep=$(grey "")
   blogo=$(battery_logo $battery_capacity)
   vlogo=$(volume_logo $volume)
-  gauge "$blogo" "$battery_capacity"         "%"  20 50 reverse_colors
+  gauge "$blogo" "$battery_capacity"         "%"  50 20
   gauge " "     "$cpu"                      "%"  40 70
   gauge ""      "$temp"                     "°C" 40 70
   gauge " "     "$mem"                      "%"  30 70
