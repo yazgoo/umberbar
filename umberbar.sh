@@ -61,7 +61,10 @@ extract() {
   temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ))
   compute_cpu
   previous_windowname_len=${#windowname}
-  windowname=$(xdotool getwindowfocus getwindowname)
+  windowinfo=$(xdotool getwindowfocus getwindowname getwindowpid)
+  windowname=$(echo "$windowinfo"|head -1)
+  windowpid=$(echo "$windowinfo"|tail -1)
+  windowcommand=$(strings "/proc/$windowpid/cmdline" | head -1)
   windowname_len=${#windowname}
   delta_window_name=$(( previous_windowname_len - windowname_len ))
   if [ $delta_window_name -gt 0 ]
@@ -105,42 +108,75 @@ grey() {
   colorize s 150:150:150 "$1"
 }
 
+left() {
+  echo -ne "$(grey "$1")$2 $(grey "") "
+}
+
 gauge() {
   colors_str="0:165:0
-$4
+$3
 255:165:0
-$5
+$4
 255:0:0"
-  if [ "$4" -gt "$5" ]
+  if [ "$3" -gt "$4" ]
   then
     colors_str=$(echo -e "$colors_str"|tac)
   fi
   mapfile -t colors <<< "$colors_str"
-  echo -ne "$(grey "$1")$(colorize_with_steps "$2")$(grey "$3") $sep "
+  echo "$(colorize_with_steps "$1")$(grey "$2")"
 }
 
-draw_date() {
-  date_str_len=${#date}
-  date_cursor_pos=$(( COLUMNS - date_str_len - 2 ))
-  echo -ne "\\033[0;${date_cursor_pos}H"
-  echo -ne "$(grey " ")"
-  echo -ne "$date"
+right() {
+  s="$(grey "  $1 ")$2 "
+  # shellcheck disable=SC2001
+  s_without_ansi=$(echo "$s" | sed "s/$(echo -e "\\e")[^m]*m//g")
+  str_len=${#s_without_ansi}
+  echo -ne "\\033[${str_len}D"
+  echo -ne "$s"
+  echo -ne "\\033[${str_len}D"
+}
+
+leftmost() {
+  echo -ne "\\033[0;0H"
+}
+
+rightmost() {
+  echo -ne "\\033[0;$((COLUMNS ))H"
+}
+
+blogo() {
+  # shellcheck disable=SC2001
+  echo -e ':\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:' | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2
+}
+
+vlogo() {
+  [ $volume -eq 0 ] && echo "🔇" || echo "🔊"
+}
+
+wlogo() {
+  logotable='vlc:嗢 \nmpv: \nchromium: \nfirefox: \nalacritty: \ndiscord:ﭮ \n.*: '
+  IFS='';
+  echo -e "$logotable" | while read -r line
+do
+  cmd=$(echo "$line" | cut -d: -f1)
+  if echo "$windowcommand" | grep "$cmd" >/dev/null
+  then
+    echo "$line" | cut -d: -f2
+    break
+  fi
+done
 }
 
 draw() {
-  tput civis
-  echo -ne "\\033[0;0H"
-  sep=$(grey "")
-  # shellcheck disable=SC2001
-  blogo=$(echo -e ':\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:' | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2)
-  vlogo=$([ $volume -eq 0 ] && echo "🔇" || echo "🔊")
-  gauge "$blogo" "$battery_capacity"         "%"  50 20
-  gauge " "     "$cpu"                      "%"  40 70
-  gauge ""      "$temp"                     "°C" 40 70
-  gauge " "     "$mem"                      "%"  30 70
-  gauge "$vlogo" "$volume"                   "%"  60 120
-  echo -ne "$(grey " ") ${windowname}${additional_spaces}"
-  draw_date
+  leftmost
+  left "$(blogo)"  "$(gauge "$battery_capacity"         "%"  50 20)"
+  left " "        "$(gauge "$cpu"                      "%"  40 70)"
+  left ""         "$(gauge "$temp"                     "°C" 40 70)"
+  left "$(wlogo)"  "${windowname}${additional_spaces}"
+  rightmost
+  right " "       "$date"
+  right " "       "$(gauge "$mem"                      "%"  30 70)"
+  right "$(vlogo)" "$(gauge "$volume"                   "%"  60 120)"
 }
 
 with_xterm() {
@@ -153,11 +189,12 @@ with_xterm() {
 # </presentation>
 
 run() {
+  tput civis
   while true
   do
     extract
     draw
-    sleep 10
+    sleep 5
   done
 }
 
