@@ -13,11 +13,11 @@ extractmem() {
   cached=$(extractmeminfo Cached "$meminfo")
   sreclaimable=$(extractmeminfo SReclaimable "$meminfo")
   shmem=$(extractmeminfo Shmem "$meminfo")
-  echo $(( ( $memtotal - $memfree - $cached - $sreclaimable + $shmem ) * 100 / $memtotal ))
+  echo $(( ( memtotal - memfree - cached - sreclaimable + shmem ) * 100 / memtotal ))
 }
 
 cpu_idle_total() {
-  values=$(cat /proc/stat | head -1 | sed 's/^cpu *//')
+  values=$(head -1 < /proc/stat | sed 's/^cpu *//')
   total=0
   idle=0
   i=0
@@ -30,30 +30,21 @@ cpu_idle_total() {
     total=$(( total + value ))
     i=$(( i + 1 ))
   done
-  echo $idle $total
 }
 
-second() {
-  echo $2
-}
-
-first() {
-  echo $1
-}
-
-cpu_percent() {
-  idle=$(first $1)
-  total=$(second $1)
-  last_idle=$(first $2)
-  last_total=$(second $2)
-  echo $(( 100 - ( (100 * (idle - last_idle) / (total - last_total))) )) 
+compute_cpu() {
+  if [ -z "$last_idle" ]
+  then
+    last_idle=0
+    last_total=0
+  fi
+  cpu_idle_total
+  cpu=$(( 100 - ( (100 * (idle - last_idle) / (total - last_total))) ))
+  last_idle="$idle"
+  last_total="$total"
 }
 
 extract() {
-  if [ -z "$last_idle_total" ]
-  then
-    last_idle_total="0 0"
-  fi
   battery_path=/sys/class/power_supply/cw2015-battery
   if [ ! -e "$battery_path" ]
   then
@@ -62,15 +53,13 @@ extract() {
 
   battery_capacity=$(cat $battery_path/capacity)
   battery_status=$(cat $battery_path/status)
-  if [ $battery_status = "Full" ]
+  if [ "$battery_status" = "Full" ]
   then
     battery_capacity=100
   fi
   date=$(date | sed -E 's/:[0-9]{2} .*//')
-  temp=$[ $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ]
-  idle_total=$(cpu_idle_total)
-  cpu=$(cpu_percent "$idle_total" "$last_idle_total")
-  last_idle_total="$idle_total"
+  temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ))
+  compute_cpu
   previous_windowname_len=${#windowname}
   windowname=$(xdotool getwindowfocus getwindowname)
   windowname_len=${#windowname}
@@ -95,18 +84,18 @@ extract() {
 # <presentation>
 
 colorize() {
-  printf "\033[38:2:%sm%$1\033[m\n" "$2" "$3"
+  printf "\\033[38:2:%sm%$1\\033[m\\n" "$2" "$3"
 }
 
 colorize_with_steps() {
-  if [ $1 -lt  $3 ]
+  if [ "$1" -lt  "${colors[1]}" ]
   then
-    color=$2
-  elif [ $1 -lt $5 ]
+    color="${colors[0]}"
+  elif [ "$1" -lt "${colors[3]}" ]
   then
-    color=$4
+    color="${colors[2]}"
   else
-    color=$6
+    color="${colors[4]}"
   fi
   colorize 3d "$color" "$1"
 }
@@ -117,27 +106,33 @@ grey() {
 }
 
 gauge() {
-  colors="0:165:0 "$4" 255:165:0 "$5" 255:0:0"
+  colors_str="0:165:0
+$4
+255:165:0
+$5
+255:0:0"
   if [ "$4" -gt "$5" ]
   then
-    colors=$(echo $colors|tr ' ' '\n'|tac|tr '\n' ' ')
+    colors_str=$(echo -e "$colors_str"|tac)
   fi
-  echo -ne "$(grey "$1")$(colorize_with_steps "$2" $colors)$(grey "$3") $sep "
+  mapfile -t colors <<< "$colors_str"
+  echo -ne "$(grey "$1")$(colorize_with_steps "$2")$(grey "$3") $sep "
 }
 
 draw_date() {
   date_str_len=${#date}
   date_cursor_pos=$(( COLUMNS - date_str_len - 2 ))
-  echo -ne "\033[0;${date_cursor_pos}H"
-  echo -ne $(grey " ")
+  echo -ne "\\033[0;${date_cursor_pos}H"
+  echo -ne "$(grey " ")"
   echo -ne "$date"
 }
 
 draw() {
   tput civis
-  echo -ne "\033[0;0H"
+  echo -ne "\\033[0;0H"
   sep=$(grey "")
-  blogo=$(echo -e ":\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:" | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2)
+  # shellcheck disable=SC2001
+  blogo=$(echo -e ':\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:' | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2)
   vlogo=$([ $volume -eq 0 ] && echo "🔇" || echo "🔊")
   gauge "$blogo" "$battery_capacity"         "%"  50 20
   gauge " "     "$cpu"                      "%"  40 70
