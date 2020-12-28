@@ -10,4 +10,4 @@ you need [nerdfonts](https://www.nerdfonts.com/) installed, as well as xterm.
 
 ## using it
 
-`./xtermumberbar.sh
+`./umberbar.sh xterm

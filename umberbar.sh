@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
 
-colorize() {
-  first_color=$2
-  first_step=$3
-  second_color=$4
-  second_step=$5
-  third_color=$6
-  if [ $1 -lt  $first_step ]
-  then
-    color=$first_color
-  elif [ $1 -lt $second_step ]
-  then
-    color=$second_color
-  else
-    color=$third_color
-  fi
-  printf "\033[38:2:%sm%3d\033[m\n" "$color" "$1"
-}
+# <extraction>
 
 extractmeminfo() {
   echo "$2" | grep "^$1:" | sed -E 's/.* ([0-9]+).*/\1/'
@@ -65,93 +49,17 @@ cpu_percent() {
   echo $(( 100 - ( (100 * (idle - last_idle) / (total - last_total))) )) 
 }
 
-battery_logo() {
-  if [ $1 -lt 10 ]
+extract() {
+  if [ -z "$last_idle_total" ]
   then
-    echo ""
-  elif [ $1 -lt 20 ]
-  then 
-    echo ""
-  elif [ $1 -lt 30 ]
-  then 
-    echo ""
-  elif [ $1 -lt 40 ]
-  then 
-    echo ""
-  elif [ $1 -lt 50 ]
-  then
-  echo ""
-  elif [ $1 -lt 60 ]
-  then 
-    echo ""
-  elif [ $1 -lt 70 ]
-  then
-    echo ""
-  elif [ $1 -lt 80 ]
-  then
-    echo ""
-  elif [ $1 -lt 90 ]
-  then
-    echo ""
-  else
-    echo ""
+    last_idle_total="0 0"
   fi
-}
-
-volume_logo() {
-  if [ $volume -eq 0 ]
+  battery_path=/sys/class/power_supply/cw2015-battery
+  if [ ! -e "$battery_path" ]
   then
-    echo "🔇"
-  else
-    echo "🔊"
+    battery_path=/sys/class/power_supply/BAT0
   fi
-}
 
-grey() {
-  printf "\033[38:2:%sm%s\033[m\n" "150:150:150" "$1"
-}
-
-gauge() {
-  colors="0:165:0 "$4" 255:165:0 "$5" 255:0:0"
-  if [ "$4" -gt "$5" ]
-  then
-    colors=$(echo $colors|tr ' ' '\n'|tac|tr '\n' ' ')
-  fi
-  echo -ne "$(grey "$1")$(colorize "$2" $colors)$(grey "$3") $sep "
-}
-
-draw_date() {
-  date_str_len=${#date}
-  date_cursor_pos=$(( COLUMNS - date_str_len - 2 ))
-  echo -ne "\033[0;${date_cursor_pos}H"
-  echo -ne $(grey " ")
-  echo -ne "$date"
-}
-
-draw_line() {
-  echo -ne "\033[0;0H"
-  sep=$(grey "")
-  blogo=$(battery_logo $battery_capacity)
-  vlogo=$(volume_logo $volume)
-  gauge "$blogo" "$battery_capacity"         "%"  50 20
-  gauge " "     "$cpu"                      "%"  40 70
-  gauge ""      "$temp"                     "°C" 40 70
-  gauge " "     "$mem"                      "%"  30 70
-  gauge "$vlogo" "$volume"                   "%"  60 120
-  echo -ne "$(grey " ") ${windowname}${additional_spaces}"
-  draw_date
-}
-
-battery_path=/sys/class/power_supply/cw2015-battery
-if [ ! -e "$battery_path" ]
-then
-  battery_path=/sys/class/power_supply/BAT0
-fi
-
-tput civis
-last_idle_total="0 0"
-while true
-do
   battery_capacity=$(cat $battery_path/capacity)
   battery_status=$(cat $battery_path/status)
   if [ $battery_status = "Full" ]
@@ -180,6 +88,87 @@ do
   then
     volume=0
   fi
-  draw_line
-  sleep 10
-done
+}
+
+# </extraction>
+
+# <presentation>
+
+colorize() {
+  printf "\033[38:2:%sm%$1\033[m\n" "$2" "$3"
+}
+
+colorize_with_steps() {
+  if [ $1 -lt  $3 ]
+  then
+    color=$2
+  elif [ $1 -lt $5 ]
+  then
+    color=$4
+  else
+    color=$6
+  fi
+  colorize 3d "$color" "$1"
+}
+
+
+grey() {
+  colorize s 150:150:150 "$1"
+}
+
+gauge() {
+  colors="0:165:0 "$4" 255:165:0 "$5" 255:0:0"
+  if [ "$4" -gt "$5" ]
+  then
+    colors=$(echo $colors|tr ' ' '\n'|tac|tr '\n' ' ')
+  fi
+  echo -ne "$(grey "$1")$(colorize_with_steps "$2" $colors)$(grey "$3") $sep "
+}
+
+draw_date() {
+  date_str_len=${#date}
+  date_cursor_pos=$(( COLUMNS - date_str_len - 2 ))
+  echo -ne "\033[0;${date_cursor_pos}H"
+  echo -ne $(grey " ")
+  echo -ne "$date"
+}
+
+draw() {
+  tput civis
+  echo -ne "\033[0;0H"
+  sep=$(grey "")
+  blogo=$(echo -e ":\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:" | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2)
+  vlogo=$([ $volume -eq 0 ] && echo "🔇" || echo "🔊")
+  gauge "$blogo" "$battery_capacity"         "%"  50 20
+  gauge " "     "$cpu"                      "%"  40 70
+  gauge ""      "$temp"                     "°C" 40 70
+  gauge " "     "$mem"                      "%"  30 70
+  gauge "$vlogo" "$volume"                   "%"  60 120
+  echo -ne "$(grey " ") ${windowname}${additional_spaces}"
+  draw_date
+}
+
+with_xterm() {
+  screen_width=$(xrandr |awk '$0 ~ "*" {print $1}'|cut -dx -f1)
+  font_size=9
+  screen_char_width=$(( screen_width / ( font_size - 2 ) ))
+  xterm -fa "DroidSansMono Nerd Font" -fs $font_size -fullscreen -geometry ${screen_char_width}x1+0+0 -bg black -fg white -class xscreensaver -e "$0" &
+}
+
+# </presentation>
+
+run() {
+  while true
+  do
+    extract
+    draw
+    sleep 10
+  done
+}
+
+if [ "$1" = "xterm" ]
+then
+  with_xterm
+else
+  run
+fi
