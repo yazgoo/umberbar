@@ -10,11 +10,24 @@
 
 - for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
 - you need xterm installed
+- you need either crystal or ruby installed
 
-## using it
+# configuration
 
-launch with xterm, specifying which theme you want to use.
+copy the configuration you want from `themes/` into `~/.config/umberbar.conf`
 
-./umberbar.sh xterm black.theme
+# building / running it (crystal)
 
-./umberbar.sh xterm white-no-nerd.theme
+```
+crystal build umberbar.cr
+```
+
+```
+./umberbar xterm
+```
+
+# running it (ruby)
+
+```
+./umberbar.rb xterm
+```

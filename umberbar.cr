@@ -208,7 +208,9 @@ class Bar
   @font_size = ""
   @steps_colors = [""]
   @bar = [DrawingItem.new]
-  def initialize(left_separator, right_separator, bg_color, fg_color, font_size, steps_colors, bar)
+  @font = "DroidSansMono"
+  def initialize(font, left_separator, right_separator, bg_color, fg_color, font_size, steps_colors, bar)
+    @font = font
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
     @bar = bar
     @left_separator = left_separator
@@ -228,10 +230,10 @@ class Bar
     end
   end
   def run
-    if ARGV.size == 1 && ARGV[0] == "xterm"
+    if ARGV.size >= 1 && ARGV[0] == "xterm"
       screen_width = 1920
       screen_char_width = (screen_width / ( @font_size.to_i - 2 )).to_i
-      font = "DroidSansMono\\ Nerd\\ Font"
+      font = is_ruby? ? @font.split(" ").join("\\ ") : @font
       additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+0", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
       if is_ruby?
         args = (["xterm"] + additional_args + [__FILE__])
@@ -247,30 +249,33 @@ class Bar
       end
     end
   end
+  def self.logos_from_str(val)
+    hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
+  end
+  def self.left_from(name, vals)
+    Left.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+  end
+  def self.right_from(name, vals)
+    Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+  end
+  def self.main
+    default_conf = "~/.config/umberbar.conf"
+    conf_path = File.exists?(default_conf) ? default_conf : "themes/black.conf"
+    conf = hash_from_key_value_array(File.read(conf_path).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
+    rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
+    bar = Bar.new(
+      font = conf["font"],
+      left_separator = conf["left_separator"].to_s,
+      right_separator = conf["right_separator"].to_s,
+      bg_color = conf["bg_color"].to_s,
+      fg_color = conf["fg_color"].to_s,
+      font_size = conf["font_size"].to_s,
+      steps_colors = conf["steps_colors"].split(" "),
+      [LeftMost.new] + lefts + [RightMost.new] + rights
+    )
+    bar.run
+  end
 end
 
-require "yaml"
-conf_path = "white-no-nerd.conf"
-conf = hash_from_key_value_array(File.read(conf_path).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
-def logos_from_str(val)
-  hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
-end
-def left_from(name, vals)
-  Left.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
-end
-def right_from(name, vals)
-  Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
-end
-lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
-rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
-p lefts
-bar = Bar.new(
-  left_separator = conf["left_separator"].to_s,
-  right_separator = conf["right_separator"].to_s,
-  bg_color = conf["bg_color"].to_s,
-  fg_color = conf["fg_color"].to_s,
-  font_size = conf["font_size"].to_s,
-  steps_colors = conf["steps_colors"].split(" "),
-  [LeftMost.new] + lefts + [RightMost.new] + rights
-)
-bar.run
+Bar.main

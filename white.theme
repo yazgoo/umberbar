@@ -1,5 +1,0 @@
-#!/usr/bin/bash
-source "$(dirname $0)/black.theme"
-bg_color=white
-fg_color=black
-normal_color=20:20:20
