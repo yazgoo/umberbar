@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+bg_color=white
+fg_color=black
+normal_color=20:20:20
+font=DroidSansMono
+separator_left="|"
+separator_right="|"
+
+draw() {
+  leftmost
+  left "bat"  "$(gauge "$battery_capacity"         "%"  50 20)"
+  left "cpu"        "$(gauge "$cpu"                      "%"  40 70)"
+  left "tem"         "$(gauge "$temp"                     "°C" 40 70)"
+  left ""  "${windowname}${additional_spaces}"
+  rightmost
+  right ""       "$date"
+  right "mem"       "$(gauge "$mem"                      "%"  30 70)"
+  right "vol" "$(gauge "$volume"                   "%"  60 120)"
+}
+
+

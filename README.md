@@ -2,12 +2,17 @@
 
 :ram: minimalistic xmobar inspired status bar, in terminal. 
 
-![screenshot with trayer](screenshotsmall.png)
+![screenshot with trayer](black.png)
+![screenshot with trayer](wite-no-nerd.png)
 
 # prerequisites 
 
-you need [nerdfonts](https://www.nerdfonts.com/) installed, as well as xterm.
+for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed, as well as xterm.
 
 ## using it
 
-`./umberbar.sh xterm
+launch with xterm, specifying which theme you want to use.
+
+./umberbar.sh xterm black.theme
+
+./umberbar.sh xterm white-no-nerd.theme

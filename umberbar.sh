@@ -105,11 +105,11 @@ colorize_with_steps() {
 
 
 grey() {
-  colorize s 150:150:150 "$1"
+  colorize s ${normal_color} "$1"
 }
 
 left() {
-  echo -ne "$(grey "$1")$2 $(grey "") "
+  echo -ne "$(grey "$1")$2 $(grey "$separator_left") "
 }
 
 gauge() {
@@ -127,7 +127,7 @@ $4
 }
 
 right() {
-  s="$(grey "  $1 ")$2 "
+  s="$(grey " $separator_right $1 ")$2 "
   # shellcheck disable=SC2001
   s_without_ansi=$(echo "$s" | sed "s/$(echo -e "\\e")[^m]*m//g")
   str_len=${#s_without_ansi}
@@ -144,46 +144,11 @@ rightmost() {
   echo -ne "\\033[0;$((COLUMNS ))H"
 }
 
-blogo() {
-  # shellcheck disable=SC2001
-  echo -e ':\n1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:' | grep -E "^$(echo "$battery_capacity" | sed 's/.$//'):" | cut -d: -f2
-}
-
-vlogo() {
-  [ $volume -eq 0 ] && echo "🔇" || echo "🔊"
-}
-
-wlogo() {
-  logotable='vlc:嗢 \nmpv: \nchromium: \nfirefox: \nalacritty: \ndiscord:ﭮ \n.*: '
-  IFS='';
-  echo -e "$logotable" | while read -r line
-do
-  cmd=$(echo "$line" | cut -d: -f1)
-  if echo "$windowcommand" | grep "$cmd" >/dev/null
-  then
-    echo "$line" | cut -d: -f2
-    break
-  fi
-done
-}
-
-draw() {
-  leftmost
-  left "$(blogo)"  "$(gauge "$battery_capacity"         "%"  50 20)"
-  left " "        "$(gauge "$cpu"                      "%"  40 70)"
-  left ""         "$(gauge "$temp"                     "°C" 40 70)"
-  left "$(wlogo)"  "${windowname}${additional_spaces}"
-  rightmost
-  right " "       "$date"
-  right " "       "$(gauge "$mem"                      "%"  30 70)"
-  right "$(vlogo)" "$(gauge "$volume"                   "%"  60 120)"
-}
-
 with_xterm() {
   screen_width=$(xrandr |awk '$0 ~ "*" {print $1}'|cut -dx -f1)
   font_size=9
   screen_char_width=$(( screen_width / ( font_size - 2 ) ))
-  xterm -fa "DroidSansMono Nerd Font" -fs $font_size -fullscreen -geometry ${screen_char_width}x1+0+0 -bg black -fg white -class xscreensaver -e "$0" &
+  xterm -fa "$font" -fs $font_size -fullscreen -geometry ${screen_char_width}x1+0+0 -bg $bg_color -fg $fg_color -class xscreensaver -e "$0 $*" &
 }
 
 # </presentation>
@@ -198,9 +163,15 @@ run() {
   done
 }
 
+if [ -n "$2" ]
+then
+  source "$2"
+else
+  source "$(dirname $0)/black.theme"
+fi
 if [ "$1" = "xterm" ]
 then
-  with_xterm
+  with_xterm shell "$2"
 else
   run
 fi
