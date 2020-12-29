@@ -17,13 +17,16 @@ class Source
   end
 end
 
-class TemperatureSource < Source
+class IntSource < Source
+end
+
+class TemperatureSource < IntSource
   def unit
     "°C"
   end
 end
 
-class PercentSource < Source
+class PercentSource < IntSource
   def unit
     "%"
   end
@@ -87,6 +90,8 @@ class Cpu < PercentSource
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
     idle = values[3]
     total = values.reduce(0) { |acc, i| acc + i }
+    @last_idle = idle if @last_idle == 0
+    @last_total = idle if @last_total == 0
     res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle) / (total - @last_total)))
     @last_total = total
     @last_idle = idle
@@ -108,17 +113,17 @@ class WindowCommand < Source
 end
 
 class DrawingItem
-  @source_name = :none
+  @source_name = ""
   def source_name
     @source_name
   end
-  def draw(left_separator, right_separator, source)
+  def draw(left_separator, right_separator, source, steps_colors)
     print ""
   end
 end
 
 class LeftMost < DrawingItem
-  def draw(a, b, c)
+  def draw(a, b, c, d)
     print "\e[0;H"
   end
 end
@@ -128,73 +133,106 @@ class RightMost < DrawingItem
   def initialize
     @cols = `tput cols`.chomp.to_i
   end
-  def draw(a, b, c)
+  def draw(a, b, c, d)
     print "\e[0;#{@cols}H"
   end
 end
 
 class DrawingSource < DrawingItem
-  @logo = { /.*/ => "?" }
+  @logo = { ".*" => "?" }
+  @steps = [0]
   def logo(value)
     @logo.each do |k, v|
-      if value.to_s.match k
+      reg_str = "^#{k}$"
+      if value.to_s.match %r[#{reg_str}]
         return v
       end
     end
   end
-  def initialize(source_name, logo) 
+  def colorize(value, color)
+    "\e[38:2:#{color}m#{value}\e[m"
+  end
+  def colorize_with_steps(source, value, steps_colors)
+    if source.is_a? IntSource
+      value = value.to_s.to_i
+      color = if value < @steps[0]
+                steps_colors[0]
+              elsif value < @steps[1]
+                steps_colors[1]
+              else
+                steps_colors[2]
+              end
+      colorize value, color
+    else
+      value
+    end
+  end
+  def initialize(source_name, steps, logo) 
+    @steps = steps
     @source_name = source_name
     @logo = logo
   end
 end
 
 class Left < DrawingSource
-  def draw(left_separator, right_separator, source)
+  @previous_value = ""
+  def draw(left_separator, right_separator, source, steps_colors)
+    @previous_value ||= ""
     value = source.get
-    print "#{logo value} #{source.get}#{source.unit} #{left_separator} "
+    value_s = value.to_s
+    delta = @previous_value.size - value_s.size
+    delta_s = delta > 0 ?  " " * delta : ""
+    print "#{logo value} #{colorize_with_steps(source, source.get, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
+    @previous_value = value_s
   end
 end
 
 class Right < DrawingSource
-  def draw(left_separator, right_separator, source)
+  def draw(left_separator, right_separator, source, steps_colors)
     value = source.get
     s = " #{right_separator} #{logo value} #{value}#{source.unit}"
+    s_colorized = " #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}"
     back = "\e[#{s.size}D"
-    print "#{back}#{s}#{back}"
+    print "#{back}#{s_colorized}#{back}"
   end
 end
 
 class Bar
   def left_gravity(sym)
   end
-  @sources = { :bat => Source.new }
+  @sources = { "bat" => Source.new }
   @left_separator = ""
   @right_separator = ""
+  @bg_color = ""
+  @fg_color = ""
+  @font_size = ""
+  @steps_colors = [""]
   @bar = [DrawingItem.new]
-  def initialize(sources, left_separator, right_separator, normal_color, bar)
-    @sources = sources
+  def initialize(left_separator, right_separator, bg_color, fg_color, font_size, steps_colors, bar)
+    @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
     @bar = bar
     @left_separator = left_separator
     @right_separator = right_separator
+    @bg_color = bg_color
+    @fg_color = fg_color
+    @font_size = font_size
+    @steps_colors = steps_colors
   end
   def draw
     @bar.each do |item|
       if @sources.has_key? item.source_name
-        item.draw(@left_separator, @right_separator, @sources[item.source_name])
+        item.draw(@left_separator, @right_separator, @sources[item.source_name], @steps_colors)
       else
-        item.draw "", "", Source.new
+        item.draw "", "", Source.new, [""]
       end
     end
   end
   def run
     if ARGV.size == 1 && ARGV[0] == "xterm"
       screen_width = 1920
-      font_size = 9
-      screen_char_width = (screen_width / ( font_size - 2 )).to_i
+      screen_char_width = (screen_width / ( @font_size.to_i - 2 )).to_i
       font = "DroidSansMono\\ Nerd\\ Font"
-      bg_color = "black"
-      fg_color = "white"
-      additional_args = ["-fa", font, "-fs", font_size.to_s, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+0", "-bg", bg_color, "-fg", fg_color, "-class", "xscreensaver", "-e"]
+      additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+0", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
       if is_ruby?
         args = (["xterm"] + additional_args + [__FILE__])
         Process.exec(args.join(" "))
@@ -211,20 +249,28 @@ class Bar
   end
 end
 
-bar = Bar.new({ :bat => Battery.new, :cpu => Cpu.new, :tem => CpuTemperatureSource.new, :win => WindowCommand.new, :vol => Volume.new, :mem => Memory.new, :dat => Date.new },
-  left_separator = "",
-  right_separator = "",
-  normal_color = "150:150:150",
-  [
-  LeftMost.new,
-  Left.new(:bat, { /^.$/ => "", /^1.$/ => "", /^2.$/ => "", /^3.$/ => "", /^4.$/ => "", /^5.$/ => "", /^6.$/ => "", /^7.$/ => "", /^8.*/ => "", /.*/ => "" }),
-  Left.new(:cpu, { /.*/ => " " }),
-  Left.new(:tem, { /.*/ => ""  }),
-  Left.new(:win, { /.*/ => " " }),
-  RightMost.new,
-  Right.new(:dat, { /.*/ => " " }),
-  Right.new(:mem, { /.*/ => " " }),
-  Right.new(:vol, { /0/ => "🔇", /.*/ => "🔊"}),
-  ],
-             )
+require "yaml"
+conf_path = "white-no-nerd.conf"
+conf = hash_from_key_value_array(File.read(conf_path).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+def logos_from_str(val)
+  hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
+end
+def left_from(name, vals)
+  Left.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+end
+def right_from(name, vals)
+  Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+end
+lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
+rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
+p lefts
+bar = Bar.new(
+  left_separator = conf["left_separator"].to_s,
+  right_separator = conf["right_separator"].to_s,
+  bg_color = conf["bg_color"].to_s,
+  fg_color = conf["fg_color"].to_s,
+  font_size = conf["font_size"].to_s,
+  steps_colors = conf["steps_colors"].split(" "),
+  [LeftMost.new] + lefts + [RightMost.new] + rights
+)
 bar.run
