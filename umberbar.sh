@@ -146,7 +146,6 @@ rightmost() {
 
 with_xterm() {
   screen_width=$(xrandr |awk '$0 ~ "*" {print $1}'|cut -dx -f1)
-  font_size=9
   screen_char_width=$(( screen_width / ( font_size - 2 ) ))
   xterm -fa "$font" -fs $font_size -fullscreen -geometry ${screen_char_width}x1+0+0 -bg $bg_color -fg $fg_color -class xscreensaver -e "$0 $*" &
 }

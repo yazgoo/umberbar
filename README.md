@@ -8,7 +8,8 @@
 
 # prerequisites 
 
-for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed, as well as xterm.
+- for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
+- you need xterm installed
 
 ## using it
 

@@ -2,6 +2,7 @@
 bg_color=black
 fg_color=white
 normal_color=150:150:150
+font_size=9
 font="DroidSansMono Nerd Font"
 separator_left=
 separator_right=
