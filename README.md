@@ -4,7 +4,7 @@
 
 ![black theme](black.png)
 
-![white theme](wite-no-nerd.png)
+![white theme](white-no-nerd.png)
 
 # prerequisites 
 
