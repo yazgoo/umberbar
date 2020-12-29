@@ -2,8 +2,9 @@
 
 :ram: minimalistic xmobar inspired status bar, in terminal. 
 
-![screenshot with trayer](black.png)
-![screenshot with trayer](wite-no-nerd.png)
+![black theme](black.png)
+
+![white theme](wite-no-nerd.png)
 
 # prerequisites 
 
