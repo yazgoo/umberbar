@@ -33,11 +33,11 @@ crystal build umberbar.cr
 ```
 ./umberbar.rb xterm
 ```
-# why does this project uses crystal ?
+# why does this project use crystal ?
 
 crystal gives this project many advantages:
 
--type safety (because type checking makes everything safer and easier to reason with)
+- type safety (because type checking makes everything safer and easier to reason with)
 - nil protection (which is part of the type safety I guess)
 - because we compile for crystal, those guarantees also translate also to ruby runtime
 - self contained binaries
