@@ -23,6 +23,12 @@ Binaries are available on [release page](https://github.com/yazgoo/umberbar/rele
 by default, umberbar will create `~/.config/umberbar.conf`.
 there are other examples of configurations in `themes/` folder
 
+## running from binaries
+
+```
+./umberbar xterm
+``` 
+
 ## building / running it (crystal)
 
 ```
