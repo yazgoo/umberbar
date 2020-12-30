@@ -232,9 +232,18 @@ class Bar
       end
     end
   end
+  def screen_width
+    result = `xrandr`.split("\n").map { |x| x.match /^ *([0-9]+)x.*\*.*$/ }.select { |x| !x.nil? }  
+    default = [0, 1920]
+    if result.size > 0 
+      first = result[0] || default
+      first[1].to_i
+    else
+      default[1]
+    end
+  end
   def run
     if ARGV.size >= 1 && ARGV[0] == "xterm"
-      screen_width = 1920
       screen_char_width = (screen_width / ( @font_size.to_i - 2 )).to_i
       font = is_ruby? ? @font.split(" ").join("\\ ") : @font
       additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+0", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
