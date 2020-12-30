@@ -1,24 +1,30 @@
-# umberbar
+# umberbar 🐏  
 
-:ram: minimalistic xmobar inspired status bar, in terminal. 
+minimalistic xmobar inspired status bar, in terminal. 
 
 ![black theme](black.png)
 
 ![white theme](white-no-nerd.png)
 
-# prerequisites 
+If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
+
+## prerequisites 
 
 - for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
 - you need xterm installed
 - you need either crystal or ruby installed
 - you need xrandr
 
-# configuration
+## downloading
+
+Binaries are available on [release page](https://github.com/yazgoo/umberbar/releases)
+
+## configuration
 
 by default, umberbar will create `~/.config/umberbar.conf`.
 there are other examples of configurations in `themes/` folder
 
-# building / running it (crystal)
+## building / running it (crystal)
 
 ```
 crystal build umberbar.cr
@@ -28,12 +34,12 @@ crystal build umberbar.cr
 ./umberbar xterm
 ```
 
-# running it (ruby)
+## running it (ruby)
 
 ```
 ./umberbar.rb xterm
 ```
-# why does this project use crystal ?
+## why does this project use crystal ?
 
 crystal gives this project many advantages:
 
@@ -42,7 +48,7 @@ crystal gives this project many advantages:
 - because we compile for crystal, those guarantees also translate also to ruby runtime
 - self contained binaries
 
-# what are the painpoints of developing for both ruby and crystal ?
+## what are the painpoints of developing for both ruby and crystal ?
 
 Although both languages are really close, crystal is not made to be compatible with ruby.
 This project uses the lowest common denominator between those (so no macro, no introspection).
