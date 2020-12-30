@@ -2,9 +2,9 @@
 
 minimalistic xmobar inspired status bar, in terminal. 
 
-![black theme](black.png)
+![black theme](themes/black.png)
 
-![white theme](white-no-nerd.png)
+![white theme](themes/white-no-nerd.png)
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 

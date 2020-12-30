@@ -90,9 +90,7 @@ class Cpu < PercentSource
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
     idle = values[3]
     total = values.reduce(0) { |acc, i| acc + i }
-    @last_idle = idle if @last_idle == 0
-    @last_total = total if @last_total == 0
-    res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle) / (total - @last_total)))
+    res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle)) / (total - @last_total))
     @last_total = total
     @last_idle = idle
     res.to_i
@@ -185,7 +183,7 @@ class Left < DrawingSource
     value_s = value.to_s
     delta = @previous_value.size - value_s.size
     delta_s = delta > 0 ?  " " * delta : ""
-    print "#{logo value} #{colorize_with_steps(source, source.get, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
+    print "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
     @previous_value = value_s
   end
 end
