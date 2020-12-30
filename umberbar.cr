@@ -88,10 +88,11 @@ class Cpu < PercentSource
   end
   def get
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
+    p values
     idle = values[3]
     total = values.reduce(0) { |acc, i| acc + i }
-    @last_idle = idle if @last_idle == 0
-    @last_total = idle if @last_total == 0
+    @last_idle = idle if @last_idle = 0
+    @last_total = total if @last_total = 0
     res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle) / (total - @last_total)))
     @last_total = total
     @last_idle = idle
@@ -155,6 +156,9 @@ class DrawingSource < DrawingItem
   def colorize_with_steps(source, value, steps_colors)
     if source.is_a? IntSource
       value = value.to_s.to_i
+      if @steps[0] > @steps[1]
+        steps_colors = steps_colors.reverse
+      end
       color = if value < @steps[0]
                 steps_colors[0]
               elsif value < @steps[1]
@@ -259,9 +263,26 @@ class Bar
     Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
   end
   def self.main
-    default_conf = "~/.config/umberbar.conf"
-    conf_path = File.exists?(default_conf) ? default_conf : "themes/black.conf"
-    conf = hash_from_key_value_array(File.read(conf_path).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    default_conf = "#{ENV["HOME"]}/.config/umberbar.conf"
+    if !File.exists?(default_conf)
+      contents = "version=0.1\n" + \
+        "font=DroidSansMono Nerd Font\n" + \
+        "left_separator=\n" + \
+        "right_separator=\n" + \
+        "bg_color=black\n" + \
+        "fg_color=grey\n" + \
+        "font_size=9\n" + \
+        "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
+        "left::bat=60 20 .:-1.:-2.:-3.:-4.:-5.:-6.:-7.:-8.:-9.:-100:\n" + \
+        "left::cpu=40 70 .*: \n" + \
+        "left::tem=30 50 .*:\n" + \
+        "left::win=0  0  .*:  \n" + \
+        "right::dat=0  0  .*: \n" + \
+        "right::mem=30 70 .*: \n" + \
+        "right::vol=60 120 0:🔇-.*:🔊"
+      File.write(default_conf, contents)
+    end
+    conf = hash_from_key_value_array(File.read(default_conf).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
     rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
     bar = Bar.new(

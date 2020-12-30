@@ -14,7 +14,8 @@
 
 # configuration
 
-copy the configuration you want from `themes/` into `~/.config/umberbar.conf`
+by default, umberbar will create `~/.config/umberbar.conf`.
+there are other examples of configurations in `themes/` folder
 
 # building / running it (crystal)
 
