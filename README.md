@@ -1,6 +1,6 @@
 # umberbar 🐏  
 
-minimalistic xmobar inspired status bar, in terminal. 
+minimalistic xmobar inspired status bar, in xterm. 
 
 ![black theme](themes/black.png)
 
