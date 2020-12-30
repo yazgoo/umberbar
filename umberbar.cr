@@ -88,11 +88,10 @@ class Cpu < PercentSource
   end
   def get
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
-    p values
     idle = values[3]
     total = values.reduce(0) { |acc, i| acc + i }
-    @last_idle = idle if @last_idle = 0
-    @last_total = total if @last_total = 0
+    @last_idle = idle if @last_idle == 0
+    @last_total = total if @last_total == 0
     res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle) / (total - @last_total)))
     @last_total = total
     @last_idle = idle
