@@ -12,7 +12,6 @@ If you want a window manager that plays along well with it, have a look at [umbe
 
 - for black and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
 - you need xterm installed
-- you need either crystal or ruby installed
 - you need xrandr
 
 ## downloading
