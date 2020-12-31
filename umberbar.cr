@@ -206,11 +206,12 @@ class Bar
   @right_separator = ""
   @bg_color = ""
   @fg_color = ""
+  @position = ""
   @font_size = ""
   @steps_colors = [""]
   @bar = [DrawingItem.new]
   @font = "DroidSansMono"
-  def initialize(font, left_separator, right_separator, bg_color, fg_color, font_size, steps_colors, bar)
+  def initialize(font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, bar)
     @font = font
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
     @bar = bar
@@ -218,6 +219,7 @@ class Bar
     @right_separator = right_separator
     @bg_color = bg_color
     @fg_color = fg_color
+    @position = position
     @font_size = font_size
     @steps_colors = steps_colors
   end
@@ -230,21 +232,23 @@ class Bar
       end
     end
   end
-  def screen_width
-    result = `xrandr`.split("\n").map { |x| x.match /^ *([0-9]+)x.*\*.*$/ }.select { |x| !x.nil? }  
-    default = [0, 1920]
+  def screen_size
+    result = `xrandr`.split("\n").map { |x| x.match /^ *([0-9]+)x([0-9]+) *.*\*.*$/ }.select { |x| !x.nil? }  
+    default = ["0", "800", "600"]
+    out = default
     if result.size > 0 
       first = result[0] || default
-      first[1].to_i
-    else
-      default[1]
+      out = first
     end
+    [out[1].to_i, out[2].to_i]
   end
   def run
     if ARGV.size >= 1 && ARGV[0] == "xterm"
-      screen_char_width = (screen_width / ( @font_size.to_i - 2 )).to_i
+      screen_dimension = screen_size
+      screen_char_width = (screen_dimension[0] / ( @font_size.to_i - 2 )).to_i
       font = is_ruby? ? @font.split(" ").join("\\ ") : @font
-      additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+0", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
+      y = @position == "bottom" ? (screen_dimension[1] - @font_size.to_i * 2) : 0
+      additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
       if is_ruby?
         args = (["xterm"] + additional_args + [__FILE__])
         Process.exec(args.join(" "))
@@ -277,6 +281,7 @@ class Bar
         "right_separator=\n" + \
         "bg_color=black\n" + \
         "fg_color=grey\n" + \
+        "position=top\n" + \
         "font_size=9\n" + \
         "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
         "left::bat=60 20 .:-1.:-2.:-3.:-4.:-5.:-6.:-7.:-8.:-9.:-100:\n" + \
@@ -297,6 +302,7 @@ class Bar
       right_separator = conf["right_separator"].to_s,
       bg_color = conf["bg_color"].to_s,
       fg_color = conf["fg_color"].to_s,
+      position = conf["position"].to_s,
       font_size = conf["font_size"].to_s,
       steps_colors = conf["steps_colors"].split(" "),
       [LeftMost.new] + lefts + [RightMost.new] + rights
