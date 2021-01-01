@@ -8,6 +8,55 @@ def hash_from_key_value_array(array)
   array.map { |x| x[0] }.zip(array.map {|x| x[1]}).to_h
 end
 
+class Logo
+  @hash = { ".*" => "logo" }
+  def initialize(hash)
+    @hash = hash
+  end
+  def self.from_s(val)
+    self.new hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
+  end
+  def to_s
+    @hash.map { |x, y| "#{x}:#{y}" }.join("-")
+  end
+  def val
+    @hash
+  end
+end
+
+class SingleLogo < Logo
+  def initialize(logo)
+    super({ ".*" => logo })
+  end
+end
+
+class NerdBatteryLogo < Logo
+  def initialize
+    super( {
+      "." => "",
+      "1." => "",
+      "2." => "",
+      "3." => "",
+      "4." => "",
+      "5." => "",
+      "6." => "",
+      "7." => "",
+      "8." => "",
+      "9." => "",
+      "100" => ""
+    })
+  end
+end
+
+class NerdVolumeLogo < Logo
+  def initialize
+    super({ 
+        "0" => "🔇",
+        ".*" => "🔊"
+      })
+  end
+end
+
 class Source
   def unit
     ""
@@ -226,13 +275,13 @@ class Theme
       "position=top\n" + \
       "font_size=9\n" + \
       "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
-      "left::bat=60 20 #{nerd? ? ".:-1.:-2.:-3.:-4.:-5.:-6.:-7.:-8.:-9.:-100:" : ".*:bat"}\n" + \
-      "left::cpu=40 70 .*:#{nerd? ? " " : "cpu"}\n" + \
-      "left::tem=30 50 .*:#{nerd? ? " " : "tem"}\n" + \
-      "left::win=0  0  .*:#{nerd? ? "  ": "win"}\n" + \
-      "right::dat=0  0  .*:#{nerd? ? " ": "dat"}\n" + \
-      "right::mem=30 70 .*:#{nerd? ? " ": "mem"}\n" + \
-      "right::vol=60 120 #{nerd? ? "0:🔇-.*:🔊" : ".*:vol" }"
+      "left::bat=60 20 #{nerd? ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s}\n" + \
+      "left::cpu=40 70 #{SingleLogo.new(nerd? ? " " : "cpu").to_s}\n" + \
+      "left::tem=30 50 #{SingleLogo.new(nerd? ? " " : "tem").to_s}\n" + \
+      "left::win=0  0  #{SingleLogo.new(nerd? ? "  ": "win").to_s}\n" + \
+      "right::dat=0  0  #{SingleLogo.new(nerd? ? " ": "dat").to_s}\n" + \
+      "right::mem=30 70 #{SingleLogo.new(nerd? ? " ": "mem").to_s}\n" + \
+      "right::vol=60 120 #{nerd? ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s}"
   end
 end
 
@@ -304,14 +353,11 @@ class Bar
       end
     end
   end
-  def self.logos_from_str(val)
-    hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
-  end
   def self.left_from(name, vals)
-    Left.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+    Left.new(name, [vals[0].to_i, vals[1].to_i], Logo.from_s(vals[2]).val)
   end
   def self.right_from(name, vals)
-    Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
+    Right.new(name, [vals[0].to_i, vals[1].to_i], Logo.from_s(vals[2]).val)
   end
   def self.get_conf
     theme = "black"
