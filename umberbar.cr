@@ -90,7 +90,7 @@ class Cpu < PercentSource
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
     idle = values[3]
     total = values.reduce(0) { |acc, i| acc + i }
-    res = total == @last_total ? 0 : 100 - ( ( 100 * (idle  - @last_idle)) / (total - @last_total))
+    res = total == @last_total ? 0 : 100 - (100 * (idle  - @last_idle).to_f) / (total - @last_total).to_f
     @last_total = total
     @last_idle = idle
     res.to_i
@@ -323,8 +323,9 @@ class Bar
     end
     conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
     save_conf = ARGV.index("-s")
-    conf_s = theme_selected ? Theme.new(theme).to_s : File.read(conf_path)
-    File.write(conf_path, conf_s) if !File.exists?(conf_path) || save_conf
+    conf_exists = File.exists?(conf_path)
+    conf_s = theme_selected || !conf_exists ? Theme.new(theme).to_s : File.read(conf_path)
+    File.write(conf_path, conf_s) if !conf_exists || save_conf
     hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
   end
   def self.help
