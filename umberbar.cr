@@ -198,6 +198,44 @@ class Right < DrawingSource
   end
 end
 
+class Theme
+  def self.list
+    ["black", "white", "black-no-nerd", "white-no-nerd"]
+  end
+  @name = "black"
+  def initialize(name)
+    @name = name
+    if Theme.list.index(name).nil? 
+      @name = Theme.list[0] 
+    end
+  end
+  def nerd?
+    @name.match(/.*no-nerd.*/).nil?
+  end
+  def black?
+    @name.match /.*black.*/
+  end
+  def to_s
+    bg_color, fg_color = black? ? ["black", "grey"] : ["white", "black"]
+    "version=0.1\n" + \
+      "font=DroidSansMono Nerd Font\n" + \
+      "left_separator=#{nerd? ? "" : "|"}\n" + \
+      "right_separator=#{nerd? ? "" : "|"}\n" + \
+      "bg_color=#{bg_color}\n" + \
+      "fg_color=#{fg_color}\n" + \
+      "position=top\n" + \
+      "font_size=9\n" + \
+      "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
+      "left::bat=60 20 #{nerd? ? ".:-1.:-2.:-3.:-4.:-5.:-6.:-7.:-8.:-9.:-100:" : ".*:bat"}\n" + \
+      "left::cpu=40 70 .*:#{nerd? ? " " : "cpu"}\n" + \
+      "left::tem=30 50 .*:#{nerd? ? " " : "tem"}\n" + \
+      "left::win=0  0  .*:#{nerd? ? "  ": "win"}\n" + \
+      "right::dat=0  0  .*:#{nerd? ? " ": "dat"}\n" + \
+      "right::mem=30 70 .*:#{nerd? ? " ": "mem"}\n" + \
+      "right::vol=60 120 #{nerd? ? "0:🔇-.*:🔊" : ".*:vol" }"
+  end
+end
+
 class Bar
   def left_gravity(sym)
   end
@@ -211,7 +249,8 @@ class Bar
   @steps_colors = [""]
   @bar = [DrawingItem.new]
   @font = "DroidSansMono"
-  def initialize(font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, bar)
+  @embedded = false
+  def initialize(font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, bar, embedded)
     @font = font
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
     @bar = bar
@@ -222,6 +261,7 @@ class Bar
     @position = position
     @font_size = font_size
     @steps_colors = steps_colors
+    @embedded = embedded
   end
   def draw
     @bar.each do |item|
@@ -243,17 +283,18 @@ class Bar
     [out[1].to_i, out[2].to_i]
   end
   def run
-    if ARGV.size >= 1 && ARGV[0] == "xterm"
+    if !@embedded
       screen_dimension = screen_size
       screen_char_width = (screen_dimension[0] / ( @font_size.to_i - 2 )).to_i
       font = is_ruby? ? @font.split(" ").join("\\ ") : @font
       y = @position == "bottom" ? (screen_dimension[1] - @font_size.to_i * 2) : 0
       additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
+      program_args = ARGV.join(" ")
       if is_ruby?
-        args = (["xterm"] + additional_args + [__FILE__])
+        args = (["xterm"] + additional_args + ["\"#{__FILE__} -e #{program_args}\""])
         Process.exec(args.join(" "))
       else
-        Process.exec("xterm", additional_args + [PROGRAM_NAME])
+        Process.exec("xterm", additional_args + [PROGRAM_NAME + " -e #{program_args}"])
       end
     else
       print `tput civis`
@@ -272,28 +313,32 @@ class Bar
   def self.right_from(name, vals)
     Right.new(name, [vals[0].to_i, vals[1].to_i], logos_from_str(vals[2]))
   end
-  def self.main
-    default_conf = "#{ENV["HOME"]}/.config/umberbar.conf"
-    if !File.exists?(default_conf)
-      contents = "version=0.1\n" + \
-        "font=DroidSansMono Nerd Font\n" + \
-        "left_separator=\n" + \
-        "right_separator=\n" + \
-        "bg_color=black\n" + \
-        "fg_color=grey\n" + \
-        "position=top\n" + \
-        "font_size=9\n" + \
-        "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
-        "left::bat=60 20 .:-1.:-2.:-3.:-4.:-5.:-6.:-7.:-8.:-9.:-100:\n" + \
-        "left::cpu=40 70 .*: \n" + \
-        "left::tem=30 50 .*:\n" + \
-        "left::win=0  0  .*:  \n" + \
-        "right::dat=0  0  .*: \n" + \
-        "right::mem=30 70 .*: \n" + \
-        "right::vol=60 120 0:🔇-.*:🔊"
-      File.write(default_conf, contents)
+  def self.get_conf
+    theme = "black"
+    theme_selected = false
+    theme_index = ARGV.index("-t")
+    if theme_index
+      theme_selected = true
+      theme = ARGV[theme_index + 1]
     end
-    conf = hash_from_key_value_array(File.read(default_conf).split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
+    save_conf = ARGV.index("-s")
+    conf_s = theme_selected ? Theme.new(theme).to_s : File.read(conf_path)
+    File.write(conf_path, conf_s) if !File.exists?(conf_path) || save_conf
+    hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+  end
+  def self.help
+    puts \
+      "-h          display this help\n" \
+      "-e          embed in a terminal\n" \
+      "-t <theme>  load a specific theme (available: #{Theme.list})\n" \
+      "-s          save selected theme in configuration"
+    exit
+  end
+  def self.main
+    self.help if ARGV.index("-h")
+    embedded = !ARGV.index("-e").nil?
+    conf = self.get_conf
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
     rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
     bar = Bar.new(
@@ -305,7 +350,8 @@ class Bar
       position = conf["position"].to_s,
       font_size = conf["font_size"].to_s,
       steps_colors = conf["steps_colors"].split(" "),
-      [LeftMost.new] + lefts + [RightMost.new] + rights
+      [LeftMost.new] + lefts + [RightMost.new] + rights,
+      embedded
     )
     bar.run
   end

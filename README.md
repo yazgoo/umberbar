@@ -2,9 +2,9 @@
 
 minimalistic xmobar inspired status bar, in xterm. 
 
-![black theme](themes/black.png)
+![black theme](snapshots/black.png)
 
-![white theme](themes/white-no-nerd.png)
+![white theme](snapshots/white-no-nerd.png)
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
@@ -20,13 +20,13 @@ Binaries are available on [release page](https://github.com/yazgoo/umberbar/rele
 
 ## configuration
 
-by default, umberbar will create `~/.config/umberbar.conf`.
-there are other examples of configurations in `themes/` folder
+By default, umberbar will create `~/.config/umberbar.conf` with default theme.
+To select a different theme use `-t <theme_name>` and to save it it to the configuration use `-s` (`-h` for more help).
 
 ## running from binaries
 
 ```
-./umberbar xterm
+./umberbar
 ``` 
 
 ## building / running it (crystal)
@@ -36,13 +36,13 @@ crystal build umberbar.cr
 ```
 
 ```
-./umberbar xterm
+./umberbar
 ```
 
 ## running it (ruby)
 
 ```
-./umberbar.rb xterm
+./umberbar.rb
 ```
 ## why does this project use crystal ?
 
