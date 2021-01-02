@@ -11,7 +11,7 @@ class Bar
   @sources = { "bat" => Source.new }
   @bar = [DrawingItem.new]
   @embedded = false
-  @theme = Theme.new("", "", "", "", "", "", "", "", [""], 
+  @theme = Theme.new("", "", false, "", "", "", "", "", "", [""], 
                      [Left.new("left", [0, 1], ".*:left")],
                      [Right.new("right", [0, 1], ".*:right")])
 
@@ -25,9 +25,9 @@ class Bar
   def draw
     @bar.each do |item|
       if @sources.has_key? item.source_name
-        item.draw(@theme.left_separator, @theme.right_separator, @sources[item.source_name], @theme.steps_colors)
+        item.draw(@theme.left_separator, @theme.right_separator, @sources[item.source_name], @theme.steps_colors, @theme.bold)
       else
-        item.draw "", "", Source.new, [""]
+        item.draw "", "", Source.new, [""], @theme.bold
       end
     end
   end
