@@ -53,3 +53,45 @@ class NerdVolumeLogo < Logo
       })
   end
 end
+
+class NerdWindowLogo < Logo
+
+  def video_players
+    "^(mpv|mplayer)"
+  end
+
+  def terminals
+    "^(alacritty|termite|xterm)"
+  end
+
+  def browsers
+    "^(chrom|firefox|qutebrowser)"
+  end
+
+  def website(name)
+    "#{browsers}.* #{name}.*"
+  end
+
+  def terminal(name)
+    "#{terminals}.* #{name}.*"
+  end
+
+  def initialize
+    super({
+      website("Stack Overflow")         => " ",
+      website("Facebook")               => " ",
+      website("Twitter")                => "暑",
+      website("YouTube")                => " ",
+      website("reddit")                 => " ",
+      website("Wikipedia")              => " ",
+      website("GitHub")                 => " ",
+      website("WhatsApp")               => " ",
+      terminal("n?vim")                 => " ",
+      "#{video_players}.*"              => " ",
+      "#{terminals}.*"                  => " ",
+      "^firefox.*"                      => " ",
+      "^chrom.*"                        => " ",
+      ".*"                              => "  ",
+      })
+  end
+end
