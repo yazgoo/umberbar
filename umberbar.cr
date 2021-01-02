@@ -317,6 +317,19 @@ class Theme
   def steps_colors
     @steps_colors
   end
+  def font_spacing
+      if @font_size.to_i < 13 
+        -2 
+      elsif @font_size.to_i < 18
+        -3
+      elsif @font_size.to_i < 23
+        -4
+      elsif @font_size.to_i < 30
+        -5
+      else
+        -6
+      end
+  end
   def self.from_name(name)
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
@@ -374,6 +387,34 @@ class Theme
       rights
       )
   end
+  def with_arg(args, name)
+    i = args.index name
+    if !i.nil?
+      yield args[i + 1]
+    end
+  end
+  def self.args_help
+    puts "Theme overriding:\n\n" \
+      "-f  <font>        font\n" \
+      "-ls <separator>   left separator\n" \
+      "-rs <separator>   right separator\n" \
+      "-bg <color>       bg color\n" \
+      "-fg <color>       fg color\n" \
+      "-p  <positio>     bar position (top, bottom)\n" \
+      "-fs <size>        font size\n" \
+      "-sc <colors>      steps colors\n" \
+  end
+  def with_args(args)
+    with_arg(args, "-f") { |x| @font  = x }
+    with_arg(args, "-ls") { |x| @left_separator  = x }
+    with_arg(args, "-rs") { |x| @right_separator  = x }
+    with_arg(args, "-bg") { |x| @bg_color  = x }
+    with_arg(args, "-fg") { |x| @fg_color  = x }
+    with_arg(args, "-p") { |x| @position  = x }
+    with_arg(args, "-fs") { |x| @font_size  = x }
+    with_arg(args, "-sc") { |x| @steps_colors  = x.split(" ") }
+    self
+  end
 end
 
 class Bar
@@ -413,11 +454,11 @@ class Bar
   def run
     if !@embedded
       screen_dimension = screen_size
-      screen_char_width = (screen_dimension[0] / ( @theme.font_size.to_i - 2 )).to_i
+      screen_char_width = (screen_dimension[0] / ( @theme.font_size.to_i + @theme.font_spacing )).to_i
       font = is_ruby? ? @theme.font.split(" ").join("\\ ") : @theme.font
       y = @theme.position == "bottom" ? (screen_dimension[1] - @theme.font_size.to_i * 2) : 0
       additional_args = ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"]
-      program_args = ARGV.join(" ")
+      program_args = ARGV.map { |x| "'#{x}'" }.join(" ")
       if is_ruby?
         args = (["xterm"] + additional_args + ["\"#{__FILE__} -e #{program_args}\""])
         Process.exec(args.join(" "))
@@ -445,7 +486,7 @@ class Bar
     conf_exists = File.exists?(conf_path)
     conf_s = theme_selected || !conf_exists ? Theme.from_name(theme).to_s : File.read(conf_path)
     File.write(conf_path, conf_s) if !conf_exists || save_conf
-    Theme.from_s(conf_s)
+    Theme.from_s(conf_s).with_args ARGV
   end
   def self.help
     puts \
@@ -453,6 +494,8 @@ class Bar
       "-e          embed in a terminal\n" \
       "-t <theme>  load a specific theme (available: #{Theme.list})\n" \
       "-s          save selected theme in configuration"
+    puts
+    puts Theme.args_help
     exit
   end
   def self.main
