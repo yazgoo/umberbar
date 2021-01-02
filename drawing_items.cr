@@ -86,7 +86,7 @@ class Left < DrawingSource
   end
 
   def self.from(name, vals)
-    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
+    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2..-1].join(" "))
   end
 
   def to_s
@@ -105,7 +105,7 @@ class Right < DrawingSource
   end
 
   def self.from(name, vals)
-    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
+    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2..-1].join(" "))
   end
 
   def to_s
