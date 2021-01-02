@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+VERSION = "0.1"
+
 def is_ruby?
   __FILE__.match /.*.rb$/
 end
@@ -10,57 +12,66 @@ end
 
 class Logo
   @hash = { ".*" => "logo" }
+
   def initialize(hash)
     @hash = hash
   end
+
   def self.from_s(val)
     self.new hash_from_key_value_array(val.split("-").map{ |x| l = x.split(":"); [l[0], l[1]] })
   end
+
   def to_s
     @hash.map { |x, y| "#{x}:#{y}" }.join("-")
   end
+
   def val
     @hash
   end
 end
 
 class SingleLogo < Logo
+
   def initialize(logo)
     super({ ".*" => logo })
   end
 end
 
 class NerdBatteryLogo < Logo
+
   def initialize
     super( {
-      "." => "",
-      "1." => "",
-      "2." => "",
-      "3." => "",
-      "4." => "",
-      "5." => "",
-      "6." => "",
-      "7." => "",
-      "8." => "",
-      "9." => "",
+      "."   => "",
+      "1."  => "",
+      "2."  => "",
+      "3."  => "",
+      "4."  => "",
+      "5."  => "",
+      "6."  => "",
+      "7."  => "",
+      "8."  => "",
+      "9."  => "",
       "100" => ""
     })
   end
 end
 
 class NerdVolumeLogo < Logo
+
   def initialize
     super({ 
-        "0" => "🔇",
+        "0"  => "🔇",
         ".*" => "🔊"
       })
   end
 end
 
 class Source
+
   def unit
     ""
   end
+
   def get
     ""
   end
@@ -70,18 +81,21 @@ class IntSource < Source
 end
 
 class TemperatureSource < IntSource
+
   def unit
     "°C"
   end
 end
 
 class PercentSource < IntSource
+
   def unit
     "%"
   end
 end
 
 class Memory < PercentSource
+
   def extract(hash, key)
     reg = / *(\d+) *.*/
     match = reg.match hash[key]
@@ -91,6 +105,7 @@ class Memory < PercentSource
       0
     end
   end
+
   def get
     lines = File.read("/proc/meminfo").split("\n").map { |line| line.split(":") }.select { |x| x.size == 2 }
     contents = hash_from_key_value_array lines
@@ -100,9 +115,11 @@ class Memory < PercentSource
 end
 
 class Date < Source
+
   def unit
     ""
   end
+
   def get
     (is_ruby? ? `date`.chomp : Time.local.to_s).sub(/:[0-9]{2} .*/, "")
   end
@@ -110,12 +127,14 @@ end
 
 class Battery < PercentSource
   @path = "/sys/class/power_supply/cw2015-battery"
+
   def initialize
     @path = "/sys/class/power_supply/cw2015-battery"
     if !File.directory?(@path)
       @path = "/sys/class/power_supply/BAT0"
     end
   end
+
   def get
     value = File.read(@path + "/capacity").chomp.to_i
     File.read(@path + "/status").chomp == "Full" ? 100 : value 
@@ -123,6 +142,7 @@ class Battery < PercentSource
 end
 
 class CpuTemperatureSource < TemperatureSource
+
   def get
     (File.read("/sys/class/thermal/thermal_zone0/temp").chomp.to_i / 1000).to_i
   end
@@ -131,10 +151,12 @@ end
 class Cpu < PercentSource
   @last_idle = 0
   @last_total = 0
+
   def initialize
     @last_idle = 0
     @last_total = 0
   end
+
   def get
     values = File.read("/proc/stat").split("\n")[0].sub(/^cpu */, "").split(" ").map{|x| x.to_i}
     idle = values[3]
@@ -147,6 +169,7 @@ class Cpu < PercentSource
 end
 
 class Volume < PercentSource
+
   def get
     reg = /^.*\[([0-9]+)%\].*\[(.*)\]$/
     mixer_out = `amixer sget Master`.split("\n").map { |x| res = reg.match(x.chomp); res ? (res[2] == "on" ? res[1].to_i : 0 ): nil }.select { |x| !x.nil? }.first
@@ -154,6 +177,7 @@ class Volume < PercentSource
 end
 
 class WindowCommand < Source
+
   def get
     `xdotool getwindowfocus getwindowname`.chomp
   end
@@ -161,15 +185,18 @@ end
 
 class DrawingItem
   @source_name = ""
+
   def source_name
     @source_name
   end
+
   def draw(left_separator, right_separator, source, steps_colors)
     print ""
   end
 end
 
 class LeftMost < DrawingItem
+
   def draw(a, b, c, d)
     print "\e[0;H"
   end
@@ -177,9 +204,11 @@ end
 
 class RightMost < DrawingItem
   @cols = 80
+
   def initialize
     @cols = `tput cols`.chomp.to_i
   end
+
   def draw(a, b, c, d)
     print "\e[0;#{@cols}H"
   end
@@ -188,6 +217,7 @@ end
 class DrawingSource < DrawingItem
   @logo = Logo.new({ ".*" => "?" })
   @steps = [0]
+
   def logo(value)
     @logo.val.each do |k, v|
       reg_str = "^#{k}$"
@@ -196,9 +226,11 @@ class DrawingSource < DrawingItem
       end
     end
   end
+
   def colorize(value, color)
     "\e[38:2:#{color}m#{value}\e[m"
   end
+
   def colorize_with_steps(source, value, steps_colors)
     if source.is_a? IntSource
       value = value.to_s.to_i
@@ -217,6 +249,7 @@ class DrawingSource < DrawingItem
       value
     end
   end
+
   def initialize(source_name, steps, logo) 
     @steps = steps
     @source_name = source_name
@@ -226,6 +259,7 @@ end
 
 class Left < DrawingSource
   @previous_value = ""
+
   def draw(left_separator, right_separator, source, steps_colors)
     @previous_value ||= ""
     value = source.get
@@ -235,15 +269,18 @@ class Left < DrawingSource
     print "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
     @previous_value = value_s
   end
+
   def self.from(name, vals)
     self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
   end
+
   def to_s
     "left::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
   end
 end
 
 class Right < DrawingSource
+
   def draw(left_separator, right_separator, source, steps_colors)
     value = source.get
     s = " #{right_separator} #{logo value} #{value}#{source.unit}"
@@ -251,17 +288,36 @@ class Right < DrawingSource
     back = "\e[#{s.size}D"
     print "#{back}#{s_colorized}#{back}"
   end
+
   def self.from(name, vals)
     self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
   end
+
   def to_s
     "right::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
   end
 end
 
 class Theme
+
+  def self.select_load_or_save(theme_selected, theme, save_conf)
+    conf_exists = File.exists?(Theme.path)
+    theme = (theme_selected || !conf_exists ? Theme.from_name(theme) : Theme.load)
+    theme.with_args!(ARGV)
+    theme.save if !conf_exists || save_conf
+    theme
+  end
+
+  def self.path
+    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
+  end
+
   def self.list
     ["black", "white", "black-no-nerd", "white-no-nerd"]
+  end
+
+  def self.positions
+    ["top", "bottom"]
   end
   @version = ""
   @font = ""
@@ -274,6 +330,7 @@ class Theme
   @steps_colors = [""]
   @lefts = [Left.new("left", [0, 1], ".*:left")]
   @rights = [Right.new("right", [0, 1], ".*:right")]
+
   def initialize(version, font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
     @version = version 
     @font = font 
@@ -281,42 +338,53 @@ class Theme
     @right_separator = right_separator 
     @bg_color = bg_color 
     @fg_color = fg_color 
-    @position = position 
+    @position = Theme.positions.index(position).nil? ? Theme.positions[0] : position
     @font_size = font_size 
     @steps_colors = steps_colors 
     @lefts = lefts 
     @rights = rights 
   end
+
   def lefts
     @lefts
   end
+
   def rights
     @rights
   end
+
   def font
     @font
   end
+
   def left_separator
     @left_separator
   end
+
   def right_separator
     @right_separator
   end
+
   def bg_color
     @bg_color
   end
+
   def fg_color
     @fg_color
   end
+
   def position
     @position
   end
+
   def font_size
     @font_size
   end
+
   def steps_colors
     @steps_colors
   end
+
   def font_spacing
       if @font_size.to_i < 13 
         -2 
@@ -330,12 +398,13 @@ class Theme
         -6
       end
   end
+
   def self.from_name(name)
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     nerd = name.match(/.*no-nerd.*/).nil?
     self.new(
-      version = "0.1",
+      version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       left_separator = "#{nerd ? "" : "|"}",
       right_separator = "#{nerd ? "" : "|"}",
@@ -356,6 +425,7 @@ class Theme
       Right.from("vol", ["60", "120", nerd ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s]) 
     ])
   end
+
   def to_s
     "version=#{@version}\n" + \
       "font=#{@font}\n" + \
@@ -369,6 +439,7 @@ class Theme
       @lefts.map { |l| l.to_s }.join("\n") + "\n" + \
       @rights.map { |l| l.to_s }.join("\n") + "\n"
   end
+
   def self.from_s(conf_s)
     conf = hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from x.sub(/.*::/, ""), y.split }
@@ -387,12 +458,22 @@ class Theme
       rights
       )
   end
+
+  def self.load
+    self.from_s(File.read(self.path))
+  end
+
+  def save
+    File.write(Theme.path, to_s)
+  end
+
   def with_arg(args, name)
     i = args.index name
     if !i.nil?
       yield args[i + 1]
     end
   end
+
   def self.args_help
     puts "Theme overriding:\n\n" \
       "-f  <font>        font\n" \
@@ -400,11 +481,12 @@ class Theme
       "-rs <separator>   right separator\n" \
       "-bg <color>       bg color\n" \
       "-fg <color>       fg color\n" \
-      "-p  <positio>     bar position (top, bottom)\n" \
+      "-p  <position>    bar position (available: #{Theme.positions})\n" \
       "-fs <size>        font size\n" \
-      "-sc <colors>      steps colors\n" \
+      "-sc <colors>      steps colors\n"
   end
-  def with_args(args)
+
+  def with_args!(args)
     with_arg(args, "-f") { |x| @font  = x }
     with_arg(args, "-ls") { |x| @left_separator  = x }
     with_arg(args, "-rs") { |x| @right_separator  = x }
@@ -418,6 +500,7 @@ class Theme
 end
 
 class Bar
+
   def left_gravity(sym)
   end
   @sources = { "bat" => Source.new }
@@ -426,12 +509,14 @@ class Bar
   @theme = Theme.new("", "", "", "", "", "", "", "", [""], 
                      [Left.new("left", [0, 1], ".*:left")],
                      [Right.new("right", [0, 1], ".*:right")])
+
   def initialize(theme, embedded)
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
     @bar = ([LeftMost.new] + theme.lefts + [RightMost.new] + theme.rights)
     @theme = theme
     @embedded = embedded
   end
+
   def draw
     @bar.each do |item|
       if @sources.has_key? item.source_name
@@ -441,8 +526,10 @@ class Bar
       end
     end
   end
+
   def screen_size
     result = `xrandr`.split("\n").map { |x| x.match /^ *([0-9]+)x([0-9]+) *.*\*.*$/ }.select { |x| !x.nil? }  
+
     default = ["0", "800", "600"]
     out = default
     if result.size > 0 
@@ -451,6 +538,7 @@ class Bar
     end
     [out[1].to_i, out[2].to_i]
   end
+
   def run
     if !@embedded
       screen_dimension = screen_size
@@ -473,6 +561,7 @@ class Bar
       end
     end
   end
+
   def self.get_conf
     theme = "black"
     theme_selected = false
@@ -481,30 +570,29 @@ class Bar
       theme_selected = true
       theme = ARGV[theme_index + 1]
     end
-    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
     save_conf = ARGV.index("-s")
-    conf_exists = File.exists?(conf_path)
-    conf_s = theme_selected || !conf_exists ? Theme.from_name(theme).to_s : File.read(conf_path)
-    File.write(conf_path, conf_s) if !conf_exists || save_conf
-    Theme.from_s(conf_s).with_args ARGV
+    Theme.select_load_or_save(theme_selected, theme, save_conf)
   end
+
   def self.help
+    puts "Umberbar v#{VERSION}: status bar running on xterm"
+    puts
     puts \
       "-h          display this help\n" \
       "-e          embed in a terminal\n" \
       "-t <theme>  load a specific theme (available: #{Theme.list})\n" \
-      "-s          save selected theme in configuration"
+      "-s          save current state in configuration in #{Theme.path}"
     puts
     puts Theme.args_help
     exit
   end
+
   def self.main
     self.help if ARGV.index("-h")
     embedded = !ARGV.index("-e").nil?
     conf = self.get_conf
     bar = Bar.new(
       conf,
-      #[LeftMost.new] + lefts + [RightMost.new] + rights,
       embedded
     )
     bar.run
