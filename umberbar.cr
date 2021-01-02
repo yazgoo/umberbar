@@ -186,10 +186,10 @@ class RightMost < DrawingItem
 end
 
 class DrawingSource < DrawingItem
-  @logo = { ".*" => "?" }
+  @logo = Logo.new({ ".*" => "?" })
   @steps = [0]
   def logo(value)
-    @logo.each do |k, v|
+    @logo.val.each do |k, v|
       reg_str = "^#{k}$"
       if value.to_s.match %r[#{reg_str}]
         return v
@@ -220,7 +220,7 @@ class DrawingSource < DrawingItem
   def initialize(source_name, steps, logo) 
     @steps = steps
     @source_name = source_name
-    @logo = logo
+    @logo = Logo.from_s logo
   end
 end
 
@@ -235,6 +235,12 @@ class Left < DrawingSource
     print "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
     @previous_value = value_s
   end
+  def self.from(name, vals)
+    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
+  end
+  def to_s
+    "left::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
+  end
 end
 
 class Right < DrawingSource
@@ -245,50 +251,20 @@ class Right < DrawingSource
     back = "\e[#{s.size}D"
     print "#{back}#{s_colorized}#{back}"
   end
+  def self.from(name, vals)
+    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2])
+  end
+  def to_s
+    "right::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
+  end
 end
 
 class Theme
   def self.list
     ["black", "white", "black-no-nerd", "white-no-nerd"]
   end
-  @name = "black"
-  def initialize(name)
-    @name = name
-    if Theme.list.index(name).nil? 
-      @name = Theme.list[0] 
-    end
-  end
-  def nerd?
-    @name.match(/.*no-nerd.*/).nil?
-  end
-  def black?
-    @name.match /.*black.*/
-  end
-  def to_s
-    bg_color, fg_color = black? ? ["black", "grey"] : ["white", "black"]
-    "version=0.1\n" + \
-      "font=DroidSansMono Nerd Font\n" + \
-      "left_separator=#{nerd? ? "" : "|"}\n" + \
-      "right_separator=#{nerd? ? "" : "|"}\n" + \
-      "bg_color=#{bg_color}\n" + \
-      "fg_color=#{fg_color}\n" + \
-      "position=top\n" + \
-      "font_size=9\n" + \
-      "steps_colors=0:165:0 255:165:0 255:0:0\n" + \
-      "left::bat=60 20 #{nerd? ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s}\n" + \
-      "left::cpu=40 70 #{SingleLogo.new(nerd? ? " " : "cpu").to_s}\n" + \
-      "left::tem=30 50 #{SingleLogo.new(nerd? ? " " : "tem").to_s}\n" + \
-      "left::win=0  0  #{SingleLogo.new(nerd? ? "  ": "win").to_s}\n" + \
-      "right::dat=0  0  #{SingleLogo.new(nerd? ? " ": "dat").to_s}\n" + \
-      "right::mem=30 70 #{SingleLogo.new(nerd? ? " ": "mem").to_s}\n" + \
-      "right::vol=60 120 #{nerd? ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s}"
-  end
-end
-
-class Bar
-  def left_gravity(sym)
-  end
-  @sources = { "bat" => Source.new }
+  @version = ""
+  @font = ""
   @left_separator = ""
   @right_separator = ""
   @bg_color = ""
@@ -296,26 +272,129 @@ class Bar
   @position = ""
   @font_size = ""
   @steps_colors = [""]
+  @lefts = [Left.new("left", [0, 1], ".*:left")]
+  @rights = [Right.new("right", [0, 1], ".*:right")]
+  def initialize(version, font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
+    @version = version 
+    @font = font 
+    @left_separator = left_separator 
+    @right_separator = right_separator 
+    @bg_color = bg_color 
+    @fg_color = fg_color 
+    @position = position 
+    @font_size = font_size 
+    @steps_colors = steps_colors 
+    @lefts = lefts 
+    @rights = rights 
+  end
+  def lefts
+    @lefts
+  end
+  def rights
+    @rights
+  end
+  def font
+    @font
+  end
+  def left_separator
+    @left_separator
+  end
+  def right_separator
+    @right_separator
+  end
+  def bg_color
+    @bg_color
+  end
+  def fg_color
+    @fg_color
+  end
+  def position
+    @position
+  end
+  def font_size
+    @font_size
+  end
+  def steps_colors
+    @steps_colors
+  end
+  def self.from_name(name)
+    black = name.match /.*black.*/
+    bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
+    nerd = name.match(/.*no-nerd.*/).nil?
+    self.new(
+      version = "0.1",
+      font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
+      left_separator = "#{nerd ? "" : "|"}",
+      right_separator = "#{nerd ? "" : "|"}",
+      bg_color = "#{bg_color}",
+      fg_color = "#{fg_color}",
+      position = "top",
+      font_size = "9",
+      steps_colors = ["0:165:0", "255:165:0", "255:0:0"],
+      [
+      Left.from("bat", ["60", "20", nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s]) ,
+      Left.from("cpu", ["40", "70", SingleLogo.new(nerd ? " " : "cpu").to_s]) ,
+      Left.from("tem", ["30", "50", SingleLogo.new(nerd ? " " : "tem").to_s]) ,
+      Left.from("win", ["0", "0", SingleLogo.new(nerd ? "  ": "win").to_s]) ,
+    ],
+    [
+      Right.from("dat", ["0", "0", SingleLogo.new(nerd ? " ": "dat").to_s]) ,
+      Right.from("mem", ["30", "70", SingleLogo.new(nerd ? " ": "mem").to_s]) ,
+      Right.from("vol", ["60", "120", nerd ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s]) 
+    ])
+  end
+  def to_s
+    "version=#{@version}\n" + \
+      "font=#{@font}\n" + \
+      "left_separator=#{@left_separator}\n" + \
+      "right_separator=#{@right_separator}\n" + \
+      "bg_color=#{@bg_color}\n" + \
+      "fg_color=#{@fg_color}\n" + \
+      "position=#{@position}\n" + \
+      "font_size=#{@font_size}\n" + \
+      "steps_colors=#{@steps_colors.join(" ")}\n" + \
+      @lefts.map { |l| l.to_s }.join("\n") + "\n" + \
+      @rights.map { |l| l.to_s }.join("\n") + "\n"
+  end
+  def self.from_s(conf_s)
+    conf = hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from x.sub(/.*::/, ""), y.split }
+    rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from x.sub(/.*::/, ""), y.split }
+    self.new(
+      version = conf["version"],
+      font = conf["font"],
+      left_separator = conf["left_separator"].to_s,
+      right_separator = conf["right_separator"].to_s,
+      bg_color = conf["bg_color"].to_s,
+      fg_color = conf["fg_color"].to_s,
+      position = conf["position"].to_s,
+      font_size = conf["font_size"].to_s,
+      steps_colors = conf["steps_colors"].split(" "),
+      lefts,
+      rights
+      )
+  end
+end
+
+class Bar
+  def left_gravity(sym)
+  end
+  @sources = { "bat" => Source.new }
   @bar = [DrawingItem.new]
-  @font = "DroidSansMono"
   @embedded = false
-  def initialize(font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, bar, embedded)
-    @font = font
+  @theme = Theme.new("", "", "", "", "", "", "", "", [""], 
+                     [Left.new("left", [0, 1], ".*:left")],
+                     [Right.new("right", [0, 1], ".*:right")])
+  def initialize(theme, embedded)
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
-    @bar = bar
-    @left_separator = left_separator
-    @right_separator = right_separator
-    @bg_color = bg_color
-    @fg_color = fg_color
-    @position = position
-    @font_size = font_size
-    @steps_colors = steps_colors
+    @bar = ([LeftMost.new] + theme.lefts + [RightMost.new] + theme.rights)
+    @theme = theme
     @embedded = embedded
   end
   def draw
     @bar.each do |item|
       if @sources.has_key? item.source_name
-        item.draw(@left_separator, @right_separator, @sources[item.source_name], @steps_colors)
+        item.draw(@theme.left_separator, @theme.right_separator, @sources[item.source_name], @theme.steps_colors)
       else
         item.draw "", "", Source.new, [""]
       end
@@ -334,10 +413,10 @@ class Bar
   def run
     if !@embedded
       screen_dimension = screen_size
-      screen_char_width = (screen_dimension[0] / ( @font_size.to_i - 2 )).to_i
-      font = is_ruby? ? @font.split(" ").join("\\ ") : @font
-      y = @position == "bottom" ? (screen_dimension[1] - @font_size.to_i * 2) : 0
-      additional_args = ["-fa", font, "-fs", @font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @bg_color, "-fg", @fg_color, "-class", "xscreensaver", "-e"]
+      screen_char_width = (screen_dimension[0] / ( @theme.font_size.to_i - 2 )).to_i
+      font = is_ruby? ? @theme.font.split(" ").join("\\ ") : @theme.font
+      y = @theme.position == "bottom" ? (screen_dimension[1] - @theme.font_size.to_i * 2) : 0
+      additional_args = ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"]
       program_args = ARGV.join(" ")
       if is_ruby?
         args = (["xterm"] + additional_args + ["\"#{__FILE__} -e #{program_args}\""])
@@ -353,12 +432,6 @@ class Bar
       end
     end
   end
-  def self.left_from(name, vals)
-    Left.new(name, [vals[0].to_i, vals[1].to_i], Logo.from_s(vals[2]).val)
-  end
-  def self.right_from(name, vals)
-    Right.new(name, [vals[0].to_i, vals[1].to_i], Logo.from_s(vals[2]).val)
-  end
   def self.get_conf
     theme = "black"
     theme_selected = false
@@ -370,9 +443,9 @@ class Bar
     conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
     save_conf = ARGV.index("-s")
     conf_exists = File.exists?(conf_path)
-    conf_s = theme_selected || !conf_exists ? Theme.new(theme).to_s : File.read(conf_path)
+    conf_s = theme_selected || !conf_exists ? Theme.from_name(theme).to_s : File.read(conf_path)
     File.write(conf_path, conf_s) if !conf_exists || save_conf
-    hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    Theme.from_s(conf_s)
   end
   def self.help
     puts \
@@ -386,18 +459,9 @@ class Bar
     self.help if ARGV.index("-h")
     embedded = !ARGV.index("-e").nil?
     conf = self.get_conf
-    lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| left_from x.sub(/.*::/, ""), y.split }
-    rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| right_from x.sub(/.*::/, ""), y.split }
     bar = Bar.new(
-      font = conf["font"],
-      left_separator = conf["left_separator"].to_s,
-      right_separator = conf["right_separator"].to_s,
-      bg_color = conf["bg_color"].to_s,
-      fg_color = conf["fg_color"].to_s,
-      position = conf["position"].to_s,
-      font_size = conf["font_size"].to_s,
-      steps_colors = conf["steps_colors"].split(" "),
-      [LeftMost.new] + lefts + [RightMost.new] + rights,
+      conf,
+      #[LeftMost.new] + lefts + [RightMost.new] + rights,
       embedded
     )
     bar.run
