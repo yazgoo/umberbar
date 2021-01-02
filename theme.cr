@@ -21,6 +21,7 @@ class Theme
   end
   @version = ""
   @font = ""
+  @bold = false
   @left_separator = ""
   @right_separator = ""
   @bg_color = ""
@@ -31,9 +32,10 @@ class Theme
   @lefts = [Left.new("left", [0, 1], ".*:left")]
   @rights = [Right.new("right", [0, 1], ".*:right")]
 
-  def initialize(version, font, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
+  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
     @version = version 
     @font = font 
+    @bold = bold
     @left_separator = left_separator 
     @right_separator = right_separator 
     @bg_color = bg_color 
@@ -85,6 +87,10 @@ class Theme
     @steps_colors
   end
 
+  def bold
+    @bold
+  end
+
   def font_spacing
       if @font_size.to_i < 13 
         -2 
@@ -106,6 +112,7 @@ class Theme
     self.new(
       version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
+      bold = false,
       left_separator = "#{nerd ? "" : "|"}",
       right_separator = "#{nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
@@ -129,6 +136,7 @@ class Theme
   def to_s
     "version=#{@version}\n" + \
       "font=#{@font}\n" + \
+      "bold=#{@bold}\n" + \
       "left_separator=#{@left_separator}\n" + \
       "right_separator=#{@right_separator}\n" + \
       "bg_color=#{@bg_color}\n" + \
@@ -147,6 +155,7 @@ class Theme
     self.new(
       version = conf["version"],
       font = conf["font"],
+      bold = conf["bold"] == "true",
       left_separator = conf["left_separator"].to_s,
       right_separator = conf["right_separator"].to_s,
       bg_color = conf["bg_color"].to_s,
@@ -174,9 +183,17 @@ class Theme
     end
   end
 
+  def with_flag(args, name)
+    i = args.index name
+    if !i.nil?
+      yield
+    end
+  end
+
   def self.args_help
     puts "Theme overriding:\n\n" \
       "-f  <font>        font\n" \
+      "-b                bold (default to false)\n" \
       "-ls <separator>   left separator\n" \
       "-rs <separator>   right separator\n" \
       "-bg <color>       bg color\n" \
@@ -188,6 +205,7 @@ class Theme
 
   def with_args!(args)
     with_arg(args, "-f") { |x| @font  = x }
+    with_flag(args, "-b") { @bold = true }
     with_arg(args, "-ls") { |x| @left_separator  = x }
     with_arg(args, "-rs") { |x| @right_separator  = x }
     with_arg(args, "-bg") { |x| @bg_color  = x }
