@@ -111,7 +111,8 @@ end
 class WindowCommand < Source
 
   def get
-    `xdotool getwindowfocus getwindowname`.chomp
+    pid, name = `xdotool getwindowfocus getwindowpid getwindowname`.chomp.split("\n")
+    "#{File.read("/proc/#{pid}/comm").chomp} - #{name}"
   end
 end
 

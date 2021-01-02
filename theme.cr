@@ -116,8 +116,8 @@ class Theme
       [
       Left.from("bat", ["60", "20", nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s]) ,
       Left.from("cpu", ["40", "70", SingleLogo.new(nerd ? " " : "cpu").to_s]) ,
-      Left.from("tem", ["30", "50", SingleLogo.new(nerd ? " " : "tem").to_s]) ,
-      Left.from("win", ["0", "0", SingleLogo.new(nerd ? "  ": "win").to_s]) ,
+      Left.from("tem", ["40", "75", SingleLogo.new(nerd ? " " : "tem").to_s]) ,
+      Left.from("win", ["0", "0", nerd ? NerdWindowLogo.new.to_s : SingleLogo.new("win").to_s]) ,
     ],
     [
       Right.from("dat", ["0", "0", SingleLogo.new(nerd ? " ": "dat").to_s]) ,
