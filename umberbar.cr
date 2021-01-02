@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+VERSION = "0.1"
+
 def is_ruby?
   __FILE__.match /.*.rb$/
 end
@@ -33,16 +35,16 @@ end
 class NerdBatteryLogo < Logo
   def initialize
     super( {
-      "." => "",
-      "1." => "",
-      "2." => "",
-      "3." => "",
-      "4." => "",
-      "5." => "",
-      "6." => "",
-      "7." => "",
-      "8." => "",
-      "9." => "",
+      "."   => "",
+      "1."  => "",
+      "2."  => "",
+      "3."  => "",
+      "4."  => "",
+      "5."  => "",
+      "6."  => "",
+      "7."  => "",
+      "8."  => "",
+      "9."  => "",
       "100" => ""
     })
   end
@@ -51,7 +53,7 @@ end
 class NerdVolumeLogo < Logo
   def initialize
     super({ 
-        "0" => "🔇",
+        "0"  => "🔇",
         ".*" => "🔊"
       })
   end
@@ -260,8 +262,21 @@ class Right < DrawingSource
 end
 
 class Theme
+  def self.select_load_or_save(theme_selected, theme, save_conf)
+    conf_exists = File.exists?(Theme.path)
+    theme = (theme_selected || !conf_exists ? Theme.from_name(theme) : Theme.load)
+    theme.with_args!(ARGV)
+    theme.save if !conf_exists || save_conf
+    theme
+  end
+  def self.path
+    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
+  end
   def self.list
     ["black", "white", "black-no-nerd", "white-no-nerd"]
+  end
+  def self.positions
+    ["top", "bottom"]
   end
   @version = ""
   @font = ""
@@ -281,7 +296,7 @@ class Theme
     @right_separator = right_separator 
     @bg_color = bg_color 
     @fg_color = fg_color 
-    @position = position 
+    @position = Theme.positions.index(position).nil? ? Theme.positions[0] : position
     @font_size = font_size 
     @steps_colors = steps_colors 
     @lefts = lefts 
@@ -335,7 +350,7 @@ class Theme
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     nerd = name.match(/.*no-nerd.*/).nil?
     self.new(
-      version = "0.1",
+      version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       left_separator = "#{nerd ? "" : "|"}",
       right_separator = "#{nerd ? "" : "|"}",
@@ -387,6 +402,12 @@ class Theme
       rights
       )
   end
+  def self.load
+    self.from_s(File.read(self.path))
+  end
+  def save
+    File.write(Theme.path, to_s)
+  end
   def with_arg(args, name)
     i = args.index name
     if !i.nil?
@@ -400,11 +421,11 @@ class Theme
       "-rs <separator>   right separator\n" \
       "-bg <color>       bg color\n" \
       "-fg <color>       fg color\n" \
-      "-p  <positio>     bar position (top, bottom)\n" \
+      "-p  <position>    bar position (available: #{Theme.positions})\n" \
       "-fs <size>        font size\n" \
-      "-sc <colors>      steps colors\n" \
+      "-sc <colors>      steps colors\n"
   end
-  def with_args(args)
+  def with_args!(args)
     with_arg(args, "-f") { |x| @font  = x }
     with_arg(args, "-ls") { |x| @left_separator  = x }
     with_arg(args, "-rs") { |x| @right_separator  = x }
@@ -481,19 +502,17 @@ class Bar
       theme_selected = true
       theme = ARGV[theme_index + 1]
     end
-    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
     save_conf = ARGV.index("-s")
-    conf_exists = File.exists?(conf_path)
-    conf_s = theme_selected || !conf_exists ? Theme.from_name(theme).to_s : File.read(conf_path)
-    File.write(conf_path, conf_s) if !conf_exists || save_conf
-    Theme.from_s(conf_s).with_args ARGV
+    Theme.select_load_or_save(theme_selected, theme, save_conf)
   end
   def self.help
+    puts "Umberbar v#{VERSION}: status bar running on xterm"
+    puts
     puts \
       "-h          display this help\n" \
       "-e          embed in a terminal\n" \
       "-t <theme>  load a specific theme (available: #{Theme.list})\n" \
-      "-s          save selected theme in configuration"
+      "-s          save current state in configuration in #{Theme.path}"
     puts
     puts Theme.args_help
     exit
@@ -504,7 +523,6 @@ class Bar
     conf = self.get_conf
     bar = Bar.new(
       conf,
-      #[LeftMost.new] + lefts + [RightMost.new] + rights,
       embedded
     )
     bar.run
