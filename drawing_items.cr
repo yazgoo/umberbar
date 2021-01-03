@@ -5,14 +5,14 @@ class DrawingItem
     @source_name
   end
 
-  def draw(left_separator, right_separator, source, steps_colors)
+  def draw(left_separator, right_separator, source, steps_colors, bold)
     print ""
   end
 end
 
 class LeftMost < DrawingItem
 
-  def draw(a, b, c, d)
+  def draw(a, b, c, d, e)
     print "\e[0;H"
   end
 end
@@ -24,7 +24,7 @@ class RightMost < DrawingItem
     @cols = `tput cols`.chomp.to_i
   end
 
-  def draw(a, b, c, d)
+  def draw(a, b, c, d, e)
     print "\e[0;#{@cols}H"
   end
 end
@@ -39,6 +39,14 @@ class DrawingSource < DrawingItem
       if value.to_s.match %r[#{reg_str}]
         return v
       end
+    end
+  end
+
+  def weight(bold, value)
+    if bold
+      "\e[1m#{value}\e[m"
+    else
+      value
     end
   end
 
@@ -75,13 +83,13 @@ end
 class Left < DrawingSource
   @previous_value = ""
 
-  def draw(left_separator, right_separator, source, steps_colors)
+  def draw(left_separator, right_separator, source, steps_colors, bold)
     @previous_value ||= ""
     value = source.get
     value_s = value.to_s
     delta = @previous_value.size - value_s.size
     delta_s = delta > 0 ?  " " * delta : ""
-    print "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
+    print weight bold, "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
     @previous_value = value_s
   end
 
@@ -96,10 +104,10 @@ end
 
 class Right < DrawingSource
 
-  def draw(left_separator, right_separator, source, steps_colors)
+  def draw(left_separator, right_separator, source, steps_colors, bold)
     value = source.get
     s = " #{right_separator} #{logo value} #{value}#{source.unit}"
-    s_colorized = " #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}"
+    s_colorized = weight bold, " #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}"
     back = "\e[#{s.size}D"
     print "#{back}#{s_colorized}#{back}"
   end
