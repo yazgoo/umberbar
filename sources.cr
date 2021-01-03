@@ -111,8 +111,13 @@ end
 class WindowCommand < Source
 
   def get
-    pid, name = `xdotool getwindowfocus getwindowpid getwindowname`.chomp.split("\n")
-    "#{File.read("/proc/#{pid}/comm").chomp} - #{name}"
+    result = `xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null`.chomp.split("\n")
+    if result.size == 2
+      pid, name = result
+      "#{File.read("/proc/#{pid}/comm").chomp} - #{name}"
+    else
+      ""
+    end
   end
 end
 
