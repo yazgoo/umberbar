@@ -57,12 +57,14 @@ class DrawingSource < DrawingItem
   def colorize_with_steps(source, value, steps_colors)
     if source.is_a? IntSource
       value = value.to_s.to_i
+      steps = @steps
       if @steps[0] > @steps[1]
         steps_colors = steps_colors.reverse
+        steps = steps.reverse
       end
-      color = if value < @steps[0]
+      color = if value < steps[0]
                 steps_colors[0]
-              elsif value < @steps[1]
+              elsif value < steps[1]
                 steps_colors[1]
               else
                 steps_colors[2]
