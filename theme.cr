@@ -29,11 +29,12 @@ class Theme
   @position = ""
   @font_size = ""
   @steps_colors = [""]
+  @refreshes = "10"
   @lefts = [Left.new("left", [0, 1], ".*:left", "", "")]
   @rights = [Right.new("right", [0, 1], ".*:right", "", "")]
   @last_update = 0
 
-  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
+  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, refreshes, lefts, rights)
     if version != VERSION
       puts "the configuration version you tried to load (#{version}) is uncompatible with this program (#{VERSION})"
       puts "this probably means that configuration format changed between the two versions. You can either:"
@@ -53,6 +54,7 @@ class Theme
     @position = Theme.positions.index(position).nil? ? Theme.positions[0] : position
     @font_size = font_size 
     @steps_colors = steps_colors 
+    @refreshes = refreshes
     @lefts = lefts 
     @rights = rights 
   end
@@ -105,6 +107,10 @@ class Theme
     @bold
   end
 
+  def refreshes
+    @refreshes.to_i
+  end
+
   def font_spacing
       if @font_size.to_i < 13 
         -2 
@@ -145,6 +151,7 @@ class Theme
       position = "top",
       font_size = "9",
       steps_colors = ["0:165:0", "255:165:0", "255:0:0"],
+      refreshes = "10",
       [
       Left.from_s("bat", "#{prefixes_suffixes["bat"]} Thresholds(60,20) Logo(#{nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s})") ,
       Left.from_s("cpu", "#{prefixes_suffixes["cpu"]} Thresholds(40,70)   Logo(#{SingleLogo.new(nerd ? " " : "cpu").to_s})") ,
@@ -180,6 +187,8 @@ class Theme
       "# thresholds colors for gauges\n" + \
       "# there are three colors in R:G:B format\n" + \
       "steps_colors=#{@steps_colors.join(" ")}\n" + \
+      "# time between two bar refreshes in seconds\n" + \
+      "refreshes=#{@refreshes}\n" + \
       "# lefts are gauges aligned to the left\n" + \
       "# named like this left::<name of source>\n" + \
       "# then you specify a list of parameters for the gauge\n" + \
@@ -212,6 +221,7 @@ class Theme
       position = conf["position"].to_s,
       font_size = conf["font_size"].to_s,
       steps_colors = conf["steps_colors"].split(" "),
+      refreshes = conf["refreshes"].to_s,
       lefts,
       rights
       )
@@ -250,6 +260,7 @@ class Theme
       "-p  <position>    bar position (available: #{Theme.positions})\n" \
       "-fs <size>        font size\n" \
       "-sc <colors>      steps colors\n"
+      "-r <seconds>      time between two bar refreshes\n"
   end
 
   def with_args!(args)
@@ -262,6 +273,7 @@ class Theme
     with_arg(args, "-p") { |x| @position  = x }
     with_arg(args, "-fs") { |x| @font_size  = x }
     with_arg(args, "-sc") { |x| @steps_colors  = x.split(" ") }
+    with_arg(args, "-r") { |x| @refreshes  = x }
     self
   end
 end

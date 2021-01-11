@@ -10,7 +10,7 @@ class Bar
   end
   @sources = { "bat" => Source.new }
   @embedded = false
-  @theme = Theme.new(VERSION, "", false, "", "", "", "", "", "", [""], 
+  @theme = Theme.new(VERSION, "", false, "", "", "", "", "", "", [""], "10",
                      [Left.new("left", [0, 1], ".*:left", "", "")],
                      [Right.new("right", [0, 1], ".*:right", "", "")])
 
@@ -63,7 +63,7 @@ class Bar
       while true
         @theme = Bar.get_conf if @theme.changed?
         draw
-        sleep 2
+        sleep @theme.refreshes
       end
     end
   end
