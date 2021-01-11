@@ -32,6 +32,8 @@ end
 class DrawingSource < DrawingItem
   @logo = Logo.new({ ".*" => "?" })
   @steps = [0]
+  @prefix = ""
+  @suffix = ""
 
   def logo(value)
     @logo.val.each do |k, v|
@@ -44,14 +46,14 @@ class DrawingSource < DrawingItem
 
   def weight(bold, value)
     if bold
-      "\e[1m#{value}\e[m"
+      "\e[1m#{value}\e[22m"
     else
       value
     end
   end
 
   def colorize(value, color)
-    "\e[38:2:#{color}m#{value}\e[m"
+    "\e[38:2:#{color}m#{value}\e[39m"
   end
 
   def colorize_with_steps(source, value, steps_colors)
@@ -75,10 +77,47 @@ class DrawingSource < DrawingItem
     end
   end
 
-  def initialize(source_name, steps, logo) 
+  def initialize(source_name, steps, logo, prefix, suffix) 
     @steps = steps
     @source_name = source_name
     @logo = Logo.from_s logo
+    @prefix = prefix
+    @suffix = suffix
+  end
+
+  def self.extract_one_argument(name, vals, fallback, pattern="[^\)]")
+    res = vals.match(/#{name}\((#{pattern}*)\)/)
+    if res
+      res[1]
+    else
+      fallback
+    end
+  end
+
+  def self.extract_suffix(vals)
+    extract_one_argument("Suffix", vals, "")
+  end
+
+  def self.extract_prefix(vals)
+    extract_one_argument("Prefix", vals, "")
+  end
+
+  def self.extract_logo(vals)
+    extract_one_argument("Logo", vals, ".*:", ".")
+  end
+
+  def self.extract_thresholds(vals)
+    res = vals.match(/Thresholds\(([0-9]+),([0-9]+)\)/)
+    if res
+      [res[1].to_i, res[2].to_i]
+    else
+      [0, 0]
+    end
+  end
+
+
+  def to_s(kind)
+    "#{kind}::#{@source_name}=Prefix(#{@prefix}) Suffix(#{@suffix}) Thresholds(#{@steps.join(",")}) Logo(#{@logo.to_s})"
   end
 end
 
@@ -91,16 +130,16 @@ class Left < DrawingSource
     value_s = value.to_s
     delta = @previous_value.size - value_s.size
     delta_s = delta > 0 ?  " " * delta : ""
-    print weight bold, "#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{delta_s}"
+    print weight bold, "#{@prefix}#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{@suffix}#{delta_s}"
     @previous_value = value_s
   end
 
-  def self.from(name, vals)
-    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2..-1].join(" "))
+  def self.from_s(name, vals)
+    self.new(name, extract_thresholds(vals), extract_logo(vals), extract_prefix(vals), extract_suffix(vals))
   end
 
   def to_s
-    "left::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
+    super("left")
   end
 end
 
@@ -108,18 +147,17 @@ class Right < DrawingSource
 
   def draw(left_separator, right_separator, source, steps_colors, bold)
     value = source.get
-    s = " #{right_separator} #{logo value} #{value}#{source.unit}"
-    s_colorized = weight bold, " #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}"
-    back = "\e[#{s.size}D"
+    s_colorized = weight bold, "#{@prefix} #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}#{@suffix}"
+    back = "\e[#{s_colorized.gsub(/\e\[[^m]*m/, "").size}D"
     print "#{back}#{s_colorized}#{back}"
   end
 
-  def self.from(name, vals)
-    self.new(name, [vals[0].to_i, vals[1].to_i], vals[2..-1].join(" "))
+  def self.from_s(name, vals)
+    self.new(name, extract_thresholds(vals), extract_logo(vals), extract_prefix(vals), extract_suffix(vals))
   end
 
   def to_s
-    "right::#{@source_name}=#{@steps.join(" ")} #{@logo.to_s}"
+    super("right")
   end
 end
 
