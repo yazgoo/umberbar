@@ -9,7 +9,6 @@ class Bar
   def left_gravity(sym)
   end
   @sources = { "bat" => Source.new }
-  @bar = [DrawingItem.new]
   @embedded = false
   @theme = Theme.new("", "", false, "", "", "", "", "", "", [""], 
                      [Left.new("left", [0, 1], ".*:left")],
@@ -17,13 +16,13 @@ class Bar
 
   def initialize(theme, embedded)
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
-    @bar = ([LeftMost.new] + theme.lefts + [RightMost.new] + theme.rights)
     @theme = theme
     @embedded = embedded
   end
 
   def draw
-    @bar.each do |item|
+    bar = ([LeftMost.new] + @theme.lefts + [RightMost.new] + @theme.rights)
+    bar.each do |item|
       if @sources.has_key? item.source_name
         item.draw(@theme.left_separator, @theme.right_separator, @sources[item.source_name], @theme.steps_colors, @theme.bold)
       else
@@ -62,8 +61,9 @@ class Bar
       print `clear`
       print `tput civis`
       while true
+        @theme = Bar.get_conf if @theme.changed?
         draw
-        sleep 5
+        sleep 10
       end
     end
   end
