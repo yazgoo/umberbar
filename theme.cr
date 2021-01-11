@@ -159,22 +159,46 @@ class Theme
   end
 
   def to_s
+    "# target version for configuration\n" + \
     "version=#{@version}\n" + \
+      "# xterm font (a list can be retrieved with fc-list)\n" + \
       "font=#{@font}\n" + \
+      "# bold font (either false or true) \n" + \
       "bold=#{@bold}\n" + \
+      "# separator between gauges aligned left\n" + \
       "left_separator=#{@left_separator}\n" + \
+      "# separator between gauges aligned right\n" + \
       "right_separator=#{@right_separator}\n" + \
+      "# xterm background color (see -bg in man xterm) \n" + \
       "bg_color=#{@bg_color}\n" + \
+      "# xterm background color (see -fg in man xterm) \n" + \
       "fg_color=#{@fg_color}\n" + \
+      "# position (available: #{Theme.positions})\n" + \
       "position=#{@position}\n" + \
+      "# font size in pixel\n" + \
       "font_size=#{@font_size}\n" + \
+      "# thresholds colors for gauges\n" + \
+      "# there are three colors in R:G:B format\n" + \
       "steps_colors=#{@steps_colors.join(" ")}\n" + \
+      "# lefts are gauges aligned to the left\n" + \
+      "# named like this left::<name of source>\n" + \
+      "# then you specify a list of parameters for the gauge\n" + \
+      "#      Prefix(<text>):            text to prefix the gauge with\n" + \
+      "#      Suffix(<text>):            text to end the gauge with\n" + \
+      "#      Thresholds(a,b):           thresholds value for coloring the gauge\n" + \
+      "#                                 coloring is based on steps_color\n" + \
+      "#                                 if a > b, colors will be applierd in reverse order\n" + \
+      "#      Logo(<reg match list>):    logo to display based on the value of the gauge\n" + \
+      "#                                 should be the last field\n" + \
+      "#                                 consist of a list of regexp to match with logos\n" + \
       @lefts.map { |l| l.to_s }.join("\n") + "\n" + \
+      "# right are gauges aligned to the right\n" + \
+      "# they are configured like lefts\n" + \
       @rights.map { |l| l.to_s }.join("\n") + "\n"
   end
 
   def self.from_s(conf_s)
-    conf = hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
+    conf = hash_from_key_value_array(conf_s.split("\n").select { |x| !x.match(/^#.*/) }.map { |x| x.split("=") }.select { |x| x.size == 2 })
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from_s x.sub(/.*::/, ""), y }
     rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from_s x.sub(/.*::/, ""), y }
     self.new(
