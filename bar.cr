@@ -10,9 +10,9 @@ class Bar
   end
   @sources = { "bat" => Source.new }
   @embedded = false
-  @theme = Theme.new("", "", false, "", "", "", "", "", "", [""], 
-                     [Left.new("left", [0, 1], ".*:left")],
-                     [Right.new("right", [0, 1], ".*:right")])
+  @theme = Theme.new(VERSION, "", false, "", "", "", "", "", "", [""], 
+                     [Left.new("left", [0, 1], ".*:left", "", "")],
+                     [Right.new("right", [0, 1], ".*:right", "", "")])
 
   def initialize(theme, embedded)
     @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
@@ -63,7 +63,7 @@ class Bar
       while true
         @theme = Bar.get_conf if @theme.changed?
         draw
-        sleep 10
+        sleep 2
       end
     end
   end

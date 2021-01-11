@@ -6,6 +6,8 @@ minimalistic xmobar inspired status bar, in xterm.
 
 ![white theme](snapshots/white-no-nerd.png)
 
+![black flames](snapshots/black-flames.png)
+
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
 ## prerequisites 

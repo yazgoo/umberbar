@@ -13,7 +13,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames"]
   end
 
   def self.positions
@@ -29,11 +29,19 @@ class Theme
   @position = ""
   @font_size = ""
   @steps_colors = [""]
-  @lefts = [Left.new("left", [0, 1], ".*:left")]
-  @rights = [Right.new("right", [0, 1], ".*:right")]
+  @lefts = [Left.new("left", [0, 1], ".*:left", "", "")]
+  @rights = [Right.new("right", [0, 1], ".*:right", "", "")]
   @last_update = 0
 
   def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
+    if version != VERSION
+      puts "the configuration version you tried to load (#{version}) is uncompatible with this program (#{VERSION})"
+      puts "this probably means that configuration format changed between the two versions. You can either:"
+      puts "- bypass this check altogether (at your own risk) by updating the version in #{Theme.path}"
+      puts "- fix your configuration manually"
+      puts "- override your configuration with an existing theme (e.g. -t black -s)"
+      exit 1
+    end
     @last_update = `date +%s`.to_i
     @version = version 
     @font = font 
@@ -112,6 +120,17 @@ class Theme
   end
 
   def self.from_name(name)
+    flames = name.match /.*flames.*/
+    prefixes_suffixes = flames ? { 
+      "bat" => "Prefix([48;2;100;100;100m[38;2;40;40;40m ) Suffix([48;2;80;80;80m[38;2;100;100;100m  [39m) ",
+      "cpu" => "Prefix([48;2;80;80;80m) Suffix([48;2;60;60;60m[38;2;80;80;80m  [39m)",
+      "tem" => "Prefix([48;2;60;60;60m) Suffix([48;2;40;40;40m[38;2;60;60;60m  [39m)",
+      "win" => "Prefix([48;2;40;40;40m) Suffix([48;2;0;0;0m[38;2;40;40;40m  [39m)",
+
+      "dat" => "Prefix([48;2;60;60;60m[38;2;80;80;80m  [48;2;80;80;80m[39m) Suffix( )",
+      "mem" => "Prefix([48;2;40;40;40m[38;2;60;60;60m  [48;2;60;60;60m[39m) Suffix( )",
+      "vol" => "Prefix([48;2;0;0;0m[38;2;40;40;40m  [48;2;40;40;40m[39m) Suffix( )",
+    } : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     nerd = name.match(/.*no-nerd.*/).nil?
@@ -119,23 +138,23 @@ class Theme
       version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       bold = false,
-      left_separator = "#{nerd ? "" : "|"}",
-      right_separator = "#{nerd ? "" : "|"}",
+      left_separator = "#{flames ? "" : nerd ? "" : "|"}",
+      right_separator = "#{flames ? "" : nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
       font_size = "9",
       steps_colors = ["0:165:0", "255:165:0", "255:0:0"],
       [
-      Left.from("bat", ["60", "20", nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s]) ,
-      Left.from("cpu", ["40", "70", SingleLogo.new(nerd ? " " : "cpu").to_s]) ,
-      Left.from("tem", ["40", "75", SingleLogo.new(nerd ? " " : "tem").to_s]) ,
-      Left.from("win", ["0", "0", nerd ? NerdWindowLogo.new.to_s : SingleLogo.new("win").to_s]) ,
+      Left.from_s("bat", "#{prefixes_suffixes["bat"]} Thresholds(60,20) Logo(#{nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s})") ,
+      Left.from_s("cpu", "#{prefixes_suffixes["cpu"]} Thresholds(40,70)   Logo(#{SingleLogo.new(nerd ? " " : "cpu").to_s})") ,
+      Left.from_s("tem", "#{prefixes_suffixes["tem"]} Thresholds(40,75)   Logo(#{SingleLogo.new(nerd ? " " : "tem").to_s})") ,
+      Left.from_s("win", "#{prefixes_suffixes["win"]} Thresholds(0,0)     Logo(#{nerd ? NerdWindowLogo.new.to_s : SingleLogo.new("win").to_s})") ,
     ],
     [
-      Right.from("dat", ["0", "0", SingleLogo.new(nerd ? " ": "dat").to_s]) ,
-      Right.from("mem", ["30", "70", SingleLogo.new(nerd ? " ": "mem").to_s]) ,
-      Right.from("vol", ["60", "120", nerd ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s]) 
+      Right.from_s("dat", "#{prefixes_suffixes["dat"]} Thresholds(0,0)    Logo(#{SingleLogo.new(nerd ? " ": "dat").to_s})"),
+      Right.from_s("mem", "#{prefixes_suffixes["mem"]} Thresholds(30,70)  Logo(#{SingleLogo.new(nerd ? " ": "mem").to_s})"),
+      Right.from_s("vol", "#{prefixes_suffixes["vol"]} Thresholds(60,120) Logo(#{nerd ? NerdVolumeLogo.new.to_s : SingleLogo.new("vol").to_s})") 
     ])
   end
 
@@ -156,8 +175,8 @@ class Theme
 
   def self.from_s(conf_s)
     conf = hash_from_key_value_array(conf_s.split("\n").map { |x| x.split("=") }.select { |x| x.size == 2 })
-    lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from x.sub(/.*::/, ""), y.split }
-    rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from x.sub(/.*::/, ""), y.split }
+    lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from_s x.sub(/.*::/, ""), y }
+    rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from_s x.sub(/.*::/, ""), y }
     self.new(
       version = conf["version"],
       font = conf["font"],
