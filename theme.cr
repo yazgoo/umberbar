@@ -31,8 +31,10 @@ class Theme
   @steps_colors = [""]
   @lefts = [Left.new("left", [0, 1], ".*:left")]
   @rights = [Right.new("right", [0, 1], ".*:right")]
+  @last_update = 0
 
   def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, lefts, rights)
+    @last_update = `date +%s`.to_i
     @version = version 
     @font = font 
     @bold = bold
@@ -45,6 +47,10 @@ class Theme
     @steps_colors = steps_colors 
     @lefts = lefts 
     @rights = rights 
+  end
+
+  def changed?
+    `stat -c '%Y' #{Theme.path}`.to_i > @last_update
   end
 
   def lefts
