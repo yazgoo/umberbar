@@ -13,7 +13,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames", "black-ice", "white-ice"]
   end
 
   def self.positions
@@ -125,18 +125,27 @@ class Theme
       end
   end
 
+  def self.nerd_with_colors(a, b, c, d, e, left_separator, right_separator)
+    { 
+      "bat" => "Prefix([48;2;#{a}m[38;2;#{b}m ) Suffix([48;2;#{c}m[38;2;#{a}m#{left_separator}  [39m) ",
+      "cpu" => "Prefix([48;2;#{c}m) Suffix([48;2;#{d}m[38;2;#{c}m#{left_separator}  [39m)",
+      "tem" => "Prefix([48;2;#{d}m) Suffix([48;2;#{b}m[38;2;#{d}m#{left_separator}  [39m)",
+      "win" => "Prefix([48;2;#{b}m) Suffix([48;2;0;0;0m[38;2;#{b}m#{left_separator}  [39m)",
+
+      "dat" => "Prefix([48;2;#{d}m[38;2;#{c}m #{right_separator} [48;2;#{c}m[39m) Suffix( )",
+      "mem" => "Prefix([48;2;#{b}m[38;2;#{d}m #{right_separator} [48;2;#{d}m[39m) Suffix( )",
+      "vol" => "Prefix([48;2;#{e}m[38;2;#{b}m #{right_separator} [48;2;#{b}m[39m) Suffix( )",
+    }
+  end
+
   def self.from_name(name)
     flames = name.match /.*flames.*/
-    prefixes_suffixes = flames ? { 
-      "bat" => "Prefix([48;2;100;100;100m[38;2;40;40;40m ) Suffix([48;2;80;80;80m[38;2;100;100;100m  [39m) ",
-      "cpu" => "Prefix([48;2;80;80;80m) Suffix([48;2;60;60;60m[38;2;80;80;80m  [39m)",
-      "tem" => "Prefix([48;2;60;60;60m) Suffix([48;2;40;40;40m[38;2;60;60;60m  [39m)",
-      "win" => "Prefix([48;2;40;40;40m) Suffix([48;2;0;0;0m[38;2;40;40;40m  [39m)",
-
-      "dat" => "Prefix([48;2;60;60;60m[38;2;80;80;80m  [48;2;80;80;80m[39m) Suffix( )",
-      "mem" => "Prefix([48;2;40;40;40m[38;2;60;60;60m  [48;2;60;60;60m[39m) Suffix( )",
-      "vol" => "Prefix([48;2;0;0;0m[38;2;40;40;40m  [48;2;40;40;40m[39m) Suffix( )",
-    } : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
+    ice = name.match /.*ice.*/
+    prefixes_suffixes = flames ? 
+    Theme.nerd_with_colors("100;100;100", "40;40;40", "80;80;80", "60;60;60", "0;0;0", "", "")    
+    : 
+    ice ? Theme.nerd_with_colors("0;168;204", "20;40;80", "12;123;147", "39;73;109", "0;0;0", "", "")    
+      : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     nerd = name.match(/.*no-nerd.*/).nil?
@@ -144,8 +153,8 @@ class Theme
       version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       bold = false,
-      left_separator = "#{flames ? "" : nerd ? "" : "|"}",
-      right_separator = "#{flames ? "" : nerd ? "" : "|"}",
+      left_separator = "#{ice || flames ? "" : nerd ? "" : "|"}",
+      right_separator = "#{ice || flames ? "" : nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
