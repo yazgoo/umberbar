@@ -32,9 +32,10 @@ class Theme
   @refreshes = "10"
   @lefts = [Left.new("left", [0, 1], ".*:left", "", "")]
   @rights = [Right.new("right", [0, 1], ".*:right", "", "")]
+  @custom_sources = [CustomSource.new("dat", "date")]
   @last_update = 0
 
-  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, refreshes, lefts, rights)
+  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, refreshes, custom_sources, lefts, rights)
     if version != VERSION
       puts "the configuration version you tried to load (#{version}) is uncompatible with this program (#{VERSION})"
       puts "this probably means that configuration format changed between the two versions. You can either:"
@@ -55,6 +56,7 @@ class Theme
     @font_size = font_size 
     @steps_colors = steps_colors 
     @refreshes = refreshes
+    @custom_sources = custom_sources
     @lefts = lefts 
     @rights = rights 
   end
@@ -97,6 +99,10 @@ class Theme
 
   def font_size
     @font_size
+  end
+
+  def custom_sources
+    @custom_sources
   end
 
   def steps_colors
@@ -169,6 +175,7 @@ class Theme
       font_size = "9",
       steps_colors = powerline || circle ? ["0:95:0", "65:95:0", "95:0:0"] : ["0:165:0", "255:165:0", "255:0:0"],
       refreshes = "10",
+      custom_sources = [CustomSource.new("dat", "date | sed -E 's/:[0-9]{2} .*//'")],
       [
       Left.from_s("bat", "#{prefixes_suffixes["bat"]} Thresholds(60,20) Logo(#{nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s})") ,
       Left.from_s("cpu", "#{prefixes_suffixes["cpu"]} Thresholds(40,70)   Logo(#{SingleLogo.new(nerd ? " " : "cpu").to_s})") ,
@@ -206,8 +213,13 @@ class Theme
       "steps_colors=#{@steps_colors.join(" ")}\n" + \
       "# time between two bar refreshes in seconds\n" + \
       "refreshes=#{@refreshes}\n" + \
+      "# custom sources allow to define your own commands as gauges sources\n" + \
+      "# named like this custom::<name of source>\n" + \
+      "# then you specify the command you want to run (can be a custom script)\n" + \
+      @custom_sources.map { |src| "custom::#{src.name}=#{src.command}" }.join("\n") + "\n" + \
       "# lefts are gauges aligned to the left\n" + \
       "# named like this left::<name of source>\n" + \
+      "# (builtin sources include: bat, cpu, temp, win, vol, mem)\n" + \
       "# then you specify a list of parameters for the gauge\n" + \
       "#      Prefix(<text>):            text to prefix the gauge with\n" + \
       "#      Suffix(<text>):            text to end the gauge with\n" + \
@@ -225,6 +237,7 @@ class Theme
 
   def self.from_s(conf_s)
     conf = hash_from_key_value_array(conf_s.split("\n").select { |x| !x.match(/^#.*/) }.map { |x| x.split("=") }.select { |x| x.size == 2 })
+    custom_sources = conf.select { |x, y| x.match /custom::.*/ }.map { |x, y| CustomSource.new(x.sub(/.*::/, ""), y) }
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from_s x.sub(/.*::/, ""), y }
     rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from_s x.sub(/.*::/, ""), y }
     self.new(
@@ -239,6 +252,7 @@ class Theme
       font_size = conf["font_size"].to_s,
       steps_colors = conf["steps_colors"].split(" "),
       refreshes = conf["refreshes"].to_s,
+      custom_sources,
       lefts,
       rights
       )
