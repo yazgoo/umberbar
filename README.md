@@ -2,11 +2,12 @@
 
 minimalistic xmobar inspired status bar, in xterm. 
 
-![black theme](snapshots/black.png)
-
-![white theme](snapshots/white-no-nerd.png)
-
-![black flames](snapshots/black-flames.png)
+| theme | image |
+| ----- | ----- |
+| black | ![black theme](snapshots/black.png) |
+| white-no-nerd | ![white theme](snapshots/white-no-nerd.png) |
+| black flames | ![black flames](snapshots/black-flames.png) |
+| black ice | ![black ice](snapshots/black-ice.png) |
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
@@ -24,6 +25,8 @@ Binaries are available on [release page](https://github.com/yazgoo/umberbar/rele
 
 By default, umberbar will create `~/.config/umberbar.conf` with default theme.
 To select a different theme use `-t <theme_name>` and to save it it to the configuration use `-s` (`-h` for more help).
+
+Generated configuration will have comments discribing each fields.
 
 ## running from binaries
 
