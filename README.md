@@ -8,6 +8,7 @@ minimalistic xmobar inspired status bar, in xterm.
 | white-no-nerd | ![white theme](snapshots/white-no-nerd.png) |
 | black flames | ![black flames](snapshots/black-flames.png) |
 | black ice | ![black ice](snapshots/black-ice.png) |
+| black powerline | ![black powerline](snapshots/black-powerline.png) |
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
