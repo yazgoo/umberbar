@@ -46,16 +46,29 @@ class Memory < PercentSource
   end
 end
 
-class Date < Source
+class CustomSource < Source
+  @name = ""
+  @command = ""
+  def initialize(name, command)
+    @name = name
+    @command = command
+  end
+  def name
+    @name
+  end
+  def command
+    @command
+  end
 
   def unit
     ""
   end
 
   def get
-    (is_ruby? ? `date`.chomp : Time.local.to_s).sub(/:[0-9]{2} .*/, "")
+    `#{@command}`.chomp
   end
 end
+
 
 class Battery < PercentSource
   @path = "/sys/class/power_supply/cw2015-battery"

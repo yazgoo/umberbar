@@ -11,11 +11,12 @@ class Bar
   @sources = { "bat" => Source.new }
   @embedded = false
   @theme = Theme.new(VERSION, "", false, "", "", "", "", "", "", [""], "10",
+                     [CustomSource.new("dat", "date")],
                      [Left.new("left", [0, 1], ".*:left", "", "")],
                      [Right.new("right", [0, 1], ".*:right", "", "")])
 
   def initialize(theme, embedded)
-    @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new, "dat" => Date.new }
+    @sources = { "bat" => Battery.new, "cpu" => Cpu.new, "tem" => CpuTemperatureSource.new, "win" => WindowCommand.new, "vol" => Volume.new, "mem" => Memory.new }
     @theme = theme
     @embedded = embedded
   end
@@ -25,8 +26,13 @@ class Bar
     bar.each do |item|
       if @sources.has_key? item.source_name
         item.draw(@theme.left_separator, @theme.right_separator, @sources[item.source_name], @theme.steps_colors, @theme.bold)
-      else
-        item.draw "", "", Source.new, [""], @theme.bold
+      else 
+        customs = @theme.custom_sources.select { |src| src.name == item.source_name}
+        if customs.size > 0
+          item.draw(@theme.left_separator, @theme.right_separator, customs[0], @theme.steps_colors, @theme.bold)
+        else
+          item.draw "", "", Source.new, [""], @theme.bold
+        end
       end
     end
   end
