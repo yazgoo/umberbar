@@ -13,7 +13,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames", "black-ice", "white-ice", "black-powerline", "white-powerline"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "black-ice", "black-powerline", "black-circle"]
   end
 
   def self.positions
@@ -138,30 +138,36 @@ class Theme
     }
   end
 
+  def self.htc(hex)
+    hex.scan(/../).map{ |x| x[0].to_i(16)}.join(":")
+  end
+
   def self.from_name(name)
     flames = name.match /.*flames.*/
     ice = name.match /.*ice.*/
     powerline = name.match /.*powerline.*/
+    circle = name.match /.*circle.*/
     prefixes_suffixes = flames ? 
     Theme.nerd_with_colors("100;100;100", "40;40;40", "80;80;80", "60;60;60", "0;0;0", "", " ")    
     : ice ? Theme.nerd_with_colors("0;168;204", "20;40;80", "12;123;147", "39;73;109", "0;0;0", "", " ")    
       : powerline ? Theme.nerd_with_colors("239;79;79", "116;199;184", "255;205;163", "238;149;149", "0;0;0", "", "")    
+      : circle ? Theme.nerd_with_colors(htc("00af91"), htc("007965"), htc("f58634"), htc("ffcc29"), "0;0;0", "", "")    
         : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
-    fg_color = "black" if powerline
+    fg_color = "black" if powerline || circle
     nerd = name.match(/.*no-nerd.*/).nil?
     self.new(
       version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       bold = false,
-      left_separator = "#{ice || flames || powerline ? "" : nerd ? "" : "|"}",
-      right_separator = "#{ice || flames || powerline ? "" : nerd ? "" : "|"}",
+      left_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
+      right_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
       font_size = "9",
-      steps_colors = powerline ? ["0:95:0", "65:95:0", "95:0:0"] : ["0:165:0", "255:165:0", "255:0:0"],
+      steps_colors = powerline || circle ? ["0:95:0", "65:95:0", "95:0:0"] : ["0:165:0", "255:165:0", "255:0:0"],
       refreshes = "10",
       [
       Left.from_s("bat", "#{prefixes_suffixes["bat"]} Thresholds(60,20) Logo(#{nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s})") ,

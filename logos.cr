@@ -93,6 +93,7 @@ class NerdWindowLogo < Logo
       "#{terminals}.*"                  => " ",
       "^firefox.*"                      => " ",
       "^chrom.*"                        => " ",
+      "^gimp .*"                        => " ",
       ".*"                              => "  ",
       })
   end
