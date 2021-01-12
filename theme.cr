@@ -13,7 +13,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames", "black-ice", "white-ice"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "white-flames", "black-ice", "white-ice", "black-powerline", "white-powerline"]
   end
 
   def self.positions
@@ -132,34 +132,36 @@ class Theme
       "tem" => "Prefix([48;2;#{d}m) Suffix([48;2;#{b}m[38;2;#{d}m#{left_separator}  [39m)",
       "win" => "Prefix([48;2;#{b}m) Suffix([48;2;0;0;0m[38;2;#{b}m#{left_separator}  [39m)",
 
-      "dat" => "Prefix([48;2;#{d}m[38;2;#{c}m #{right_separator} [48;2;#{c}m[39m) Suffix( )",
-      "mem" => "Prefix([48;2;#{b}m[38;2;#{d}m #{right_separator} [48;2;#{d}m[39m) Suffix( )",
-      "vol" => "Prefix([48;2;#{e}m[38;2;#{b}m #{right_separator} [48;2;#{b}m[39m) Suffix( )",
+      "dat" => "Prefix([48;2;#{d}m[38;2;#{c}m #{right_separator}[48;2;#{c}m[39m) Suffix( )",
+      "mem" => "Prefix([48;2;#{b}m[38;2;#{d}m #{right_separator}[48;2;#{d}m[39m) Suffix( )",
+      "vol" => "Prefix([48;2;#{e}m[38;2;#{b}m #{right_separator}[48;2;#{b}m[39m) Suffix( )",
     }
   end
 
   def self.from_name(name)
     flames = name.match /.*flames.*/
     ice = name.match /.*ice.*/
+    powerline = name.match /.*powerline.*/
     prefixes_suffixes = flames ? 
-    Theme.nerd_with_colors("100;100;100", "40;40;40", "80;80;80", "60;60;60", "0;0;0", "", "")    
-    : 
-    ice ? Theme.nerd_with_colors("0;168;204", "20;40;80", "12;123;147", "39;73;109", "0;0;0", "", "")    
-      : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
+    Theme.nerd_with_colors("100;100;100", "40;40;40", "80;80;80", "60;60;60", "0;0;0", "", " ")    
+    : ice ? Theme.nerd_with_colors("0;168;204", "20;40;80", "12;123;147", "39;73;109", "0;0;0", "", " ")    
+      : powerline ? Theme.nerd_with_colors("239;79;79", "116;199;184", "255;205;163", "238;149;149", "0;0;0", "", "")    
+        : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
+    fg_color = "black" if powerline
     nerd = name.match(/.*no-nerd.*/).nil?
     self.new(
       version = "#{VERSION}",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
       bold = false,
-      left_separator = "#{ice || flames ? "" : nerd ? "" : "|"}",
-      right_separator = "#{ice || flames ? "" : nerd ? "" : "|"}",
+      left_separator = "#{ice || flames || powerline ? "" : nerd ? "" : "|"}",
+      right_separator = "#{ice || flames || powerline ? "" : nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
       font_size = "9",
-      steps_colors = ["0:165:0", "255:165:0", "255:0:0"],
+      steps_colors = powerline ? ["0:95:0", "65:95:0", "95:0:0"] : ["0:165:0", "255:165:0", "255:0:0"],
       refreshes = "10",
       [
       Left.from_s("bat", "#{prefixes_suffixes["bat"]} Thresholds(60,20) Logo(#{nerd ? NerdBatteryLogo.new.to_s : SingleLogo.new("bat").to_s})") ,
