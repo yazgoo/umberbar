@@ -78,7 +78,6 @@ class NerdWindowLogo < Logo
 
   def initialize
     super({
-      "^$"                              => "",
       "^Discord.*"                      => "ﭮ",
       website("Stack Overflow")         => " ",
       website("Facebook")               => " ",
