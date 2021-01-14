@@ -53,7 +53,7 @@ class DrawingSource < DrawingItem
   end
 
   def colorize(value, color)
-    "\e[38:2:#{color}m#{value}\e[39m"
+    "\e[38:2:#{color}m%3d\e[39m" % value
   end
 
   def colorize_with_steps(source, value, steps_colors)
@@ -127,11 +127,14 @@ class Left < DrawingSource
   def draw(left_separator, right_separator, source, steps_colors, bold)
     @previous_value ||= ""
     value = source.get
-    value_s = value.to_s
-    delta = @previous_value.size - value_s.size
-    delta_s = delta > 0 ?  " " * delta : ""
+    delta_s = ""
+    if !source.is_a? IntSource
+      value_s = value.to_s
+      delta = @previous_value.size - value_s.size
+      delta_s = delta > 0 ?  " " * (delta + 1) : ""
+      @previous_value = value_s
+    end
     print weight bold, "#{@prefix}#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{@suffix}#{delta_s}"
-    @previous_value = value_s
   end
 
   def self.from_s(name, vals)
