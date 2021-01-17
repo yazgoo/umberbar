@@ -77,8 +77,12 @@ class Theme
     @rights = rights 
   end
 
+  def file_changed?(path)
+    `stat -c '%Y' #{path}`.to_i > @last_update
+  end
+
   def changed?
-    `stat -c '%Y' #{Theme.path}`.to_i > @last_update
+    file_changed?(Theme.path) || file_changed?(Theme.override_path)
   end
 
   def terminal_width
