@@ -78,6 +78,7 @@ class Theme
   end
 
   def file_changed?(path)
+    path = File.symlink?(path) ? File.readlink(path) : path
     `stat -c '%Y' #{path}`.to_i > @last_update
   end
 

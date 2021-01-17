@@ -97,6 +97,7 @@ class Bar
       "-e          embed in a terminal\n" \
       "-t <theme>  load a specific theme (available: #{Theme.list})\n" \
       "-s          save current state in configuration in #{Theme.path}"
+      "-q          do not run the bar"
     puts
     puts Theme.args_help
     exit
@@ -110,7 +111,7 @@ class Bar
       conf,
       embedded
     )
-    bar.run(main_file)
+    bar.run(main_file) if ARGV.index("-q").nil?
   end
 end
 
