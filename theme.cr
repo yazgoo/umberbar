@@ -1,6 +1,9 @@
+require "file_utils"
+
 class Theme
 
   def self.select_load_or_save(theme_selected, theme, save_conf)
+    FileUtils.mkdir_p(base_path) if !File.directory?(base_path)
     conf_exists = File.exists?(Theme.path)
     theme = (theme_selected || !conf_exists ? Theme.from_name(theme) : Theme.load)
     theme.with_args!(ARGV)
@@ -8,8 +11,16 @@ class Theme
     theme
   end
 
+  def self.base_path
+    "#{ENV["HOME"]}/.config/umberbar/"
+  end
+
   def self.path
-    conf_path = "#{ENV["HOME"]}/.config/umberbar.conf"
+    "#{base_path}/umberbar.conf"
+  end
+
+  def self.override_path
+    "#{base_path}/override.conf"
   end
 
   def self.list
@@ -20,7 +31,10 @@ class Theme
     ["top", "bottom"]
   end
   @version = ""
+  @term = ""
+  @terminal_width = -1
   @font = ""
+  @font_spacing = 0
   @bold = false
   @left_separator = ""
   @right_separator = ""
@@ -35,7 +49,7 @@ class Theme
   @custom_sources = [CustomSource.new("dat", "date")]
   @last_update = 0
 
-  def initialize(version, font, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, refreshes, custom_sources, lefts, rights)
+  def initialize(version, term, font, terminal_width, font_spacing, bold, left_separator, right_separator, bg_color, fg_color, position, font_size, steps_colors, refreshes, custom_sources, lefts, rights)
     if version != VERSION
       puts "the configuration version you tried to load (#{version}) is uncompatible with this program (#{VERSION})"
       puts "this probably means that configuration format changed between the two versions. You can either:"
@@ -46,7 +60,9 @@ class Theme
     end
     @last_update = `date +%s`.to_i
     @version = version 
+    @term = term
     @font = font 
+    @terminal_width = terminal_width
     @bold = bold
     @left_separator = left_separator 
     @right_separator = right_separator 
@@ -65,6 +81,11 @@ class Theme
     `stat -c '%Y' #{Theme.path}`.to_i > @last_update
   end
 
+  def terminal_width
+    @terminal_width
+  end
+
+
   def lefts
     @lefts
   end
@@ -76,6 +97,15 @@ class Theme
   def font
     @font
   end
+
+  def font_spacing
+    @font_spacing
+  end
+
+  def term
+    @term
+  end
+
 
   def left_separator
     @left_separator
@@ -117,35 +147,86 @@ class Theme
     @refreshes.to_i
   end
 
-  def font_spacing
-      if @font_size.to_i < 13 
+  def self.get_font_spacing(term, font_size)
+    if term == "xterm"
+      if font_size.to_i < 13 
         -2 
-      elsif @font_size.to_i < 18
+      elsif font_size.to_i < 18
         -3
-      elsif @font_size.to_i < 23
+      elsif font_size.to_i < 23
         -4
-      elsif @font_size.to_i < 30
+      elsif font_size.to_i < 30
         -5
       else
         -6
       end
+    else
+      if font_size.to_i < 3
+        1
+      elsif font_size.to_i < 6
+        0
+      elsif font_size.to_i < 8
+        -1
+      elsif font_size.to_i < 11
+        -2 
+      elsif font_size.to_i < 13
+        -3
+      elsif font_size.to_i < 16
+        -4
+      elsif font_size.to_i < 18
+        -5
+      elsif font_size.to_i < 21
+        -6
+      else
+        -7
+      end
+    end
+  end
+  
+  def self.fgc(color)
+    "[38;2;#{color}m"
+  end
+
+  def self.bgc(color)
+    "[48;2;#{color}m"
+  end
+
+  def self.bgc_fgc(a, b)
+    "#{bgc(a)}#{fgc(b)}"
+  end
+
+  def self.endc
+    "[39m"
+  end
+
+  def self.endbg
+    "[49m"
+  end
+
+  def self.prefix(a)
+    "Prefix(#{a} )"
+  end
+
+  def self.suffix(a)
+    "Suffix(#{a})"
   end
 
   def self.nerd_with_colors(a, b, c, d, e, left_separator, right_separator)
-    { 
-      "bat" => "Prefix([48;2;#{a}m[38;2;#{b}m ) Suffix([48;2;#{c}m[38;2;#{a}m#{left_separator}  [39m) ",
-      "cpu" => "Prefix([48;2;#{c}m) Suffix([48;2;#{d}m[38;2;#{c}m#{left_separator}  [39m)",
-      "tem" => "Prefix([48;2;#{d}m) Suffix([48;2;#{b}m[38;2;#{d}m#{left_separator}  [39m)",
-      "win" => "Prefix([48;2;#{b}m) Suffix([48;2;0;0;0m[38;2;#{b}m#{left_separator}  [39m)",
+    o = "0;0;0"
+    {
+      "bat" => [prefix(bgc_fgc(a,b)), suffix(bgc_fgc(c,a) + left_separator + endc)].join(" "),
+      "cpu" => [prefix(bgc(c)),       suffix(bgc_fgc(d,c) + left_separator + endc)].join(" "),
+      "tem" => [prefix(bgc(d)),       suffix(bgc_fgc(b,d) + left_separator + endc)].join(" "),
+      "win" => [prefix(bgc(b)),       suffix(endbg + fgc(b) + left_separator + endc)].join(" "),
 
-      "dat" => "Prefix([48;2;#{d}m[38;2;#{c}m #{right_separator}[48;2;#{c}m[39m) Suffix( )",
-      "mem" => "Prefix([48;2;#{b}m[38;2;#{d}m #{right_separator}[48;2;#{d}m[39m) Suffix( )",
-      "vol" => "Prefix([48;2;#{e}m[38;2;#{b}m #{right_separator}[48;2;#{b}m[39m) Suffix( )",
+      "dat" => [prefix(bgc_fgc(d,c) + "" + right_separator + bgc(c) + endc), suffix(" ")].join(" "),
+      "mem" => [prefix(bgc_fgc(b,d) + " " + right_separator + bgc(d) + endc), suffix(" ")].join(" "),
+      "vol" => [prefix(endbg + fgc(b) + "" + right_separator + bgc(b) + endc), suffix(" ")].join(" "),
     }
   end
 
   def self.htc(hex)
-    hex.scan(/../).map{ |x| x[0].to_i(16)}.join(":")
+    hex.scan(/../).map{ |x| x[0].to_i(16)}.join(";")
   end
 
   def self.from_name(name)
@@ -163,16 +244,20 @@ class Theme
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     fg_color = "black" if powerline || circle
     nerd = name.match(/.*no-nerd.*/).nil?
+    font_size = "11"
     self.new(
       version = "#{VERSION}",
+      term = "xterm",
       font = "DroidSansMono#{nerd ? " Nerd Font" : ""}",
+      terminal_width = -1,
+      font_spacing = get_font_spacing(term, font_size),
       bold = false,
       left_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
       right_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
-      font_size = "9",
+      font_size,
       steps_colors = powerline || circle ? ["0:95:0", "65:95:0", "95:0:0"] : ["0:165:0", "255:165:0", "255:0:0"],
       refreshes = "10",
       custom_sources = [CustomSource.new("dat", "date | sed -E 's/:[0-9]{2} .*//'")],
@@ -192,6 +277,8 @@ class Theme
   def to_s
     "# target version for configuration\n" + \
     "version=#{@version}\n" + \
+    "# term inal to use\n" + \
+      "term=#{@term}\n" + \
       "# xterm font (a list can be retrieved with fc-list)\n" + \
       "font=#{@font}\n" + \
       "# bold font (either false or true) \n" + \
@@ -208,6 +295,10 @@ class Theme
       "position=#{@position}\n" + \
       "# font size in pixel\n" + \
       "font_size=#{@font_size}\n" + \
+      "# font spacing in pixel, usually negative (number of pixel between each character, optional)\n" + \
+      "font_spacing=#{@font_spacing}\n" + \
+      "# terminal width in characters (if set to -1, will set it based on font spacing and font size)\n" + \
+      "terminal_width=#{@terminal_width}\n" + \
       "# thresholds colors for gauges\n" + \
       "# there are three colors in R:G:B format\n" + \
       "steps_colors=#{@steps_colors.join(" ")}\n" + \
@@ -240,16 +331,21 @@ class Theme
     custom_sources = conf.select { |x, y| x.match /custom::.*/ }.map { |x, y| CustomSource.new(x.sub(/.*::/, ""), y) }
     lefts = conf.select { |x, y| x.match /left::.*/ }.map { |x, y| Left.from_s x.sub(/.*::/, ""), y }
     rights = conf.select { |x, y| x.match /right::.*/ }.map { |x, y| Right.from_s x.sub(/.*::/, ""), y }
+    font_size = conf["font_size"].to_s
+    term = conf["term"] || "xterm"
     self.new(
       version = conf["version"],
+      term,
       font = conf["font"],
+      terminal_width = conf["terminal_width"].to_i || -1,
+      font_spacing = conf.has_key?("font_spacing") ? conf["font_spacing"].to_i : get_font_spacing(term, font_size.to_i),
       bold = conf["bold"] == "true",
       left_separator = conf["left_separator"].to_s,
       right_separator = conf["right_separator"].to_s,
       bg_color = conf["bg_color"].to_s,
       fg_color = conf["fg_color"].to_s,
       position = conf["position"].to_s,
-      font_size = conf["font_size"].to_s,
+      font_size,
       steps_colors = conf["steps_colors"].split(" "),
       refreshes = conf["refreshes"].to_s,
       custom_sources,
@@ -259,7 +355,9 @@ class Theme
   end
 
   def self.load
-    self.from_s(File.read(self.path))
+    s = File.read(self.path)
+    s += "\n" + File.read(self.override_path) if File.exists?(self.override_path)
+    self.from_s(s)
   end
 
   def save
@@ -283,6 +381,7 @@ class Theme
   def self.args_help
     puts "Theme overriding:\n\n" \
       "-f  <font>        font\n" \
+      "-te <term>        terminal to use\n" \
       "-b                bold (default to false)\n" \
       "-ls <separator>   left separator\n" \
       "-rs <separator>   right separator\n" \
@@ -290,12 +389,15 @@ class Theme
       "-fg <color>       fg color\n" \
       "-p  <position>    bar position (available: #{Theme.positions})\n" \
       "-fs <size>        font size\n" \
+      "-fsp <spacing>    font spacing: pixels number between each character, usually negative\n"
+      "-w <size>         number of chars of the terminal\n"
       "-sc <colors>      steps colors\n"
       "-r <seconds>      time between two bar refreshes\n"
   end
 
   def with_args!(args)
     with_arg(args, "-f") { |x| @font  = x }
+    with_arg(args, "-te") { |x| @term  = x }
     with_flag(args, "-b") { @bold = true }
     with_arg(args, "-ls") { |x| @left_separator  = x }
     with_arg(args, "-rs") { |x| @right_separator  = x }
@@ -305,6 +407,8 @@ class Theme
     with_arg(args, "-fs") { |x| @font_size  = x }
     with_arg(args, "-sc") { |x| @steps_colors  = x.split(" ") }
     with_arg(args, "-r") { |x| @refreshes  = x }
+    with_arg(args, "-fsp") { |x| @font_spacing  = x.to_i }
+    with_arg(args, "-w") { |x| @terminal_width  = x.to_i }
     self
   end
 end

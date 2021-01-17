@@ -48,8 +48,8 @@ class NerdVolumeLogo < Logo
 
   def initialize
     super({ 
-        "0"  => "🔇",
-        ".*" => "🔊"
+        "0"  => "婢",
+        ".*" => " "
       })
   end
 end

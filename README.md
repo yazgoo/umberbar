@@ -1,6 +1,6 @@
 # umberbar 🐏  
 
-minimalistic xmobar inspired status bar, in xterm. 
+minimalistic xmobar inspired status bar, in xterm (or urxvt). 
 
 | theme | image |
 | ----- | ----- |
@@ -16,7 +16,7 @@ If you want a window manager that plays along well with it, have a look at [umbe
 ## prerequisites 
 
 - for black (default) and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
-- you need xterm installed
+- you need xterm (or urxvt) installed
 - you need xrandr
 
 ## downloading
@@ -25,10 +25,22 @@ Binaries are available on [release page](https://github.com/yazgoo/umberbar/rele
 
 ## configuration
 
-By default, umberbar will create `~/.config/umberbar.conf` with default theme.
+By default, umberbar will create `~/.config/umberbar/umberbar.conf` with default theme.
 To select a different theme use `-t <theme_name>` and to save it it to the configuration use `-s` (`-h` for more help).
 
 Generated configuration will have comments discribing each fields.
+
+You can also add additional configuration in `~/.config/umberbar/override.conf`.
+This will allow you to switch themes via `-t` and `-s` without loosing your changes.
+The configuration parameters you set in this file will override the ones in umberbar.conf.
+
+For example, here are contents of my override.conf tailored for urxvt:
+
+```
+term=urxvt
+terminal_width=241
+font=FuraCode Nerd Font Mono
+```
 
 ## running from binaries
 
@@ -51,6 +63,22 @@ crystal build umberbar.cr
 ```
 ./umberbar.rb
 ```
+
+## using with urxvt
+
+You can also use urxvt instead of xterm, which is nice becaues
+urxvt has background transparency support.
+
+Your urxvt version should also have truecolor enabled.
+
+just run:
+
+```
+./umberbar -te urxvt
+```
+
+For nerd font to be fully operational, make sure the font you're using is monospaced.
+
 ## why does this project use crystal ?
 
 crystal gives this project many advantages:

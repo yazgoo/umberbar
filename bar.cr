@@ -10,7 +10,7 @@ class Bar
   end
   @sources = { "bat" => Source.new }
   @embedded = false
-  @theme = Theme.new(VERSION, "", false, "", "", "", "", "", "", [""], "10",
+  @theme = Theme.new(VERSION, "", "", -1, 0, false, "", "", "", "", "", "", [""], "10",
                      [CustomSource.new("dat", "date")],
                      [Left.new("left", [0, 1], ".*:left", "", "")],
                      [Right.new("right", [0, 1], ".*:right", "", "")])
@@ -52,16 +52,19 @@ class Bar
   def run(main_file)
     if !@embedded
       screen_dimension = screen_size
-      screen_char_width = (screen_dimension[0] / ( @theme.font_size.to_i + @theme.font_spacing )).to_i
+      xterm = @theme.term == "xterm"
+      screen_char_width = @theme.terminal_width == -1 ? (screen_dimension[0] / ( @theme.font_size.to_i + @theme.font_spacing)).to_i + 1 : @theme.terminal_width
       font = is_ruby? ? @theme.font.split(" ").join("\\ ") : @theme.font
       y = @theme.position == "bottom" ? (screen_dimension[1] - @theme.font_size.to_i * 2) : 0
-      additional_args = ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"]
+      additional_args = xterm ? ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"]
+        : ["-fn", "xft:#{font}:pixelsize=#{@theme.font_size.to_i + 2}:antialias=true:hinting=true", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-depth", "32", "-bg", "rgba:3f00/3f00/3f00/0000", "-b", "0", "-name", "xscreensaver", "-e", "sh", "-c"]
       program_args = ARGV.map { |x| "'#{x}'" }.join(" ")
       if is_ruby?
-        args = (["xterm"] + additional_args + ["\"#{main_file} -e #{program_args}\""])
+        args = ([@theme.term] + additional_args + ["\"#{main_file} -e #{program_args}\""])
         Process.exec(args.join(" "))
       else
-        Process.exec("xterm", additional_args + [PROGRAM_NAME + " -e #{program_args}"])
+        args = additional_args + [PROGRAM_NAME + " -e #{program_args}"]
+        Process.exec(@theme.term, args)
       end
     else
       print `clear`
