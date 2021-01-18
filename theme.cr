@@ -22,7 +22,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "black-ice", "black-powerline", "black-circle"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "black-ice", "black-powerline", "black-circle", "black-tabs"]
   end
 
   def self.positions
@@ -186,7 +186,7 @@ class Theme
     end
   end
 
-  def self.nerd_with_colors(a, b, c, d, e, left_separator, right_separator)
+  def self.nerd_with_colors(a, b, c, d, e)
     {
       "bat" => ["Prefix(${bgc_fgc #{a} #{b}})", "Suffix(${bgc_fgc #{c} #{a}}${ls}${endfg})"].join(" "),
       "cpu" => ["Prefix(${bgc #{c}})",       "Suffix(${bgc_fgc #{d} #{c}}${ls}${endfg})"].join(" "),
@@ -199,21 +199,35 @@ class Theme
     }
   end
 
+  def self.with_tabs
+    {
+      "bat" => "Prefix( ${fgc 111d5e}${rs}${endfg}${bgc_fgc 111d5e c70039}) Suffix(${endbg}${fgc 111d5e}${ls}${endfg} )",
+      "cpu" => "Prefix(${fgc f37121}${rs}${endfg}${bgc f37121}) Suffix(${endbg}${fgc f37121}${ls}${endfg} )",
+      "tem" => "Prefix(${fgc c0e218}${rs}${endfg}${bgc c0e218}) Suffix(${endbg}${fgc c0e218}${ls}${endfg} )",
+      "win" => "Prefix(${fgc c70039}${rs}${endfg}${bgc c70039}) Suffix(${endbg}${fgc c70039}${ls}${endfg})",
+      "dat" => "Prefix(${endbg}${fgc f37121}${rs}${bgc f37121}${endfg}) Suffix( ${endbg}${fgc f37121}${ls}${endfg} )",
+      "mem" => "Prefix(${endbg}${fgc c0e218}${rs}${bgc c0e218}${endfg}) Suffix( ${endbg}${fgc c0e218}${ls}${endfg} )",
+      "vol" => "Prefix(${endbg}${fgc c70039}${rs}${bgc c70039}${endfg}) Suffix( ${endbg}${fgc c70039}${ls}${endfg} )",
+    }
+  end
+
   def self.from_name(name)
     flames = name.match /.*flames.*/
     ice = name.match /.*ice.*/
     powerline = name.match /.*powerline.*/
     circle = name.match /.*circle.*/
+    tabs = name.match /.*tabs.*/
     nerd = name.match(/.*no-nerd.*/).nil?
     s = "Suffix(${ls})"
     p = "Prefix(${rs})"
     prefixes_suffixes = flames ? 
-    Theme.nerd_with_colors("646464", "282828", "505050", "3c3c3c", "000000", "", " ")    
-    : ice ? Theme.nerd_with_colors("00a8cc", "142850", "0c7b93", "27496d", "000000", "", " ")    
-      : powerline ? Theme.nerd_with_colors("ef4f4f", "74c7b8", "ffcda3", "ee9595", "000000", "", "")    
-      : circle ? Theme.nerd_with_colors("00af91", "007965", "f58634", "ffcc29", "000000", "", "")    
+    Theme.nerd_with_colors("646464", "282828", "505050", "3c3c3c", "000000")    
+    : ice ? Theme.nerd_with_colors("00a8cc", "142850", "0c7b93", "27496d", "000000")    
+      : powerline ? Theme.nerd_with_colors("ef4f4f", "74c7b8", "ffcda3", "ee9595", "000000")    
+      : circle ? Theme.nerd_with_colors("00af91", "007965", "f58634", "ffcc29", "000000")    
+      : tabs ? Theme.with_tabs
         : { "bat" => s, "cpu" => s, "tem" => s, "win" => s, "dat" => p, "mem" => p, "vol" => p }
-    left_separator, right_separator = flames ? ["", " "] : ice ? ["", " "] : powerline ? ["", ""] : circle ? ["", ""] : nerd ? ["", ""] : ["|", "|"]
+    left_separator, right_separator = flames ? ["", " "] : ice ? ["", " "] : powerline ? ["", ""] : circle ? ["", ""] : tabs ? [" ", " "] : nerd ? ["", ""] : ["|", "|"]
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     fg_color = "black" if powerline || circle
