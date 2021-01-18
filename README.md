@@ -1,6 +1,6 @@
 # umberbar 🐏  
 
-minimalistic xmobar inspired status bar, in xterm (or urxvt). 
+minimalistic xmobar inspired status bar, in a terminal emulator. 
 
 | theme | image |
 | ----- | ----- |
@@ -16,7 +16,7 @@ If you want a window manager that plays along well with it, have a look at [umbe
 ## prerequisites 
 
 - for black (default) and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
-- you need xterm (or urxvt) installed
+- you need xterm or urxvt or alacritty installed (urxvt and alacritty support background transparency)
 - you need xrandr
 
 ## downloading

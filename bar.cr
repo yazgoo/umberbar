@@ -53,17 +53,35 @@ class Bar
     if !@embedded
       screen_dimension = screen_size
       xterm = @theme.term == "xterm"
+      urxvt = @theme.term == "urxvt"
+      alacritty = @theme.term == "alacritty"
+      alacritty_conf_path = "/tmp/alacritty-umberbar.yml"
+      if alacritty
+        File.write(alacritty_conf_path, "font:\n" + \
+                   "  family: #{@theme.font}\n" + \
+                   "  size: #{@theme.font_size}\n" + \
+"colors:\n" + \
+"  # Default colors\n" + \
+"  primary:\n" + \
+"    background: '#{@theme.bg_color}'\n" + \
+"    foreground: '#{@theme.fg_color}'\n" + \
+        "background_opacity: 0\n")
+      end
       screen_char_width = @theme.terminal_width == -1 ? (screen_dimension[0] / ( @theme.font_size.to_i + @theme.font_spacing)).to_i + 1 : @theme.terminal_width
       font = is_ruby? ? @theme.font.split(" ").join("\\ ") : @theme.font
       y = @theme.position == "bottom" ? (screen_dimension[1] - @theme.font_size.to_i * 2) : 0
-      additional_args = xterm ? ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"]
-        : ["-fn", "xft:#{font}:pixelsize=#{@theme.font_size.to_i + 2}:antialias=true:hinting=true", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-depth", "32", "-bg", "rgba:3f00/3f00/3f00/0000", "-b", "0", "-name", "xscreensaver", "-e", "sh", "-c"]
+      additional_args = xterm ? ["-fa", font, "-fs", @theme.font_size, "-fullscreen", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-fg", @theme.fg_color, "-class", "xscreensaver", "-e"] : 
+        urxvt ? ["-fn", "xft:#{font}:pixelsize=#{@theme.font_size.to_i + 2}:antialias=true:hinting=true", "-geometry", "#{screen_char_width}x1+0+#{y}", "-bg", @theme.bg_color, "-depth", "32", "-bg", "rgba:3f00/3f00/3f00/0000", "-b", "0", "-name", "xscreensaver", "-e", "sh", "-c"] :
+        alacritty ? 
+        ["--position", "0", "0", "--dimensions", screen_char_width.to_s, "1", "--class", "xscreensaver", "--config-file", alacritty_conf_path, "--command"]
+        : [""]
       program_args = ARGV.map { |x| "'#{x}'" }.join(" ")
       if is_ruby?
-        args = ([@theme.term] + additional_args + ["\"#{main_file} -e #{program_args}\""])
+        args = ([@theme.term] + additional_args + (alacritty ? ([main_file, "-e"] + ARGV) : ["\"#{main_file} -e #{program_args}\""]))
         Process.exec(args.join(" "))
       else
-        args = additional_args + [PROGRAM_NAME + " -e #{program_args}"]
+        args = additional_args + (alacritty ? ([PROGRAM_NAME, "-e"] + ARGV) : [PROGRAM_NAME + " -e #{program_args}"])
+        p args
         Process.exec(@theme.term, args)
       end
     else
