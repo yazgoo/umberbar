@@ -1,9 +1,7 @@
-require "file_utils"
-
 class Theme
 
   def self.select_load_or_save(theme_selected, theme, save_conf)
-    FileUtils.mkdir_p(base_path) if !File.directory?(base_path)
+    `mkdir -p #{base_path}` if !File.directory?(base_path)
     conf_exists = File.exists?(Theme.path)
     theme = (theme_selected || !conf_exists ? Theme.from_name(theme) : Theme.load)
     theme.with_args!(ARGV)
@@ -187,51 +185,18 @@ class Theme
       end
     end
   end
-  
-  def self.fgc(color)
-    "[38;2;#{color}m"
-  end
-
-  def self.bgc(color)
-    "[48;2;#{color}m"
-  end
-
-  def self.bgc_fgc(a, b)
-    "#{bgc(a)}#{fgc(b)}"
-  end
-
-  def self.endc
-    "[39m"
-  end
-
-  def self.endbg
-    "[49m"
-  end
-
-  def self.prefix(a)
-    "Prefix(#{a} )"
-  end
-
-  def self.suffix(a)
-    "Suffix(#{a})"
-  end
 
   def self.nerd_with_colors(a, b, c, d, e, left_separator, right_separator)
-    o = "0;0;0"
     {
-      "bat" => [prefix(bgc_fgc(a,b)), suffix(bgc_fgc(c,a) + left_separator + endc)].join(" "),
-      "cpu" => [prefix(bgc(c)),       suffix(bgc_fgc(d,c) + left_separator + endc)].join(" "),
-      "tem" => [prefix(bgc(d)),       suffix(bgc_fgc(b,d) + left_separator + endc)].join(" "),
-      "win" => [prefix(bgc(b)),       suffix(endbg + fgc(b) + left_separator + endc)].join(" "),
+      "bat" => ["Prefix(${bgc_fgc #{a} #{b}})", "Suffix(${bgc_fgc #{c} #{a}}${ls}${endfg})"].join(" "),
+      "cpu" => ["Prefix(${bgc #{c}})",       "Suffix(${bgc_fgc #{d} #{c}}${ls}${endfg})"].join(" "),
+      "tem" => ["Prefix(${bgc #{d}})",       "Suffix(${bgc_fgc #{b} #{d}}${ls}${endfg})"].join(" "),
+      "win" => ["Prefix(${bgc #{b}})",       "Suffix(${endbg}${fgc #{b}}${ls}${endfg})"].join(" "),
 
-      "dat" => [prefix(bgc_fgc(d,c) + "" + right_separator + bgc(c) + endc), suffix(" ")].join(" "),
-      "mem" => [prefix(bgc_fgc(b,d) + " " + right_separator + bgc(d) + endc), suffix(" ")].join(" "),
-      "vol" => [prefix(endbg + fgc(b) + "" + right_separator + bgc(b) + endc), suffix(" ")].join(" "),
+      "dat" => ["Prefix(${bgc_fgc #{d} #{c}}${rs}${bgc #{c}}${endfg})", "Suffix( )"].join(" "),
+      "mem" => ["Prefix(${bgc_fgc #{b} #{d}}  ${rs}${bgc #{d}}${endfg})", "Suffix( )"].join(" "),
+      "vol" => ["Prefix(${endbg}${fgc #{b}}${rs}${bgc #{b}}${endfg})", "Suffix( )"].join(" "),
     }
-  end
-
-  def self.htc(hex)
-    hex.scan(/../).map{ |x| x[0].to_i(16)}.join(";")
   end
 
   def self.from_name(name)
@@ -239,16 +204,19 @@ class Theme
     ice = name.match /.*ice.*/
     powerline = name.match /.*powerline.*/
     circle = name.match /.*circle.*/
+    nerd = name.match(/.*no-nerd.*/).nil?
+    s = "Suffix(${ls})"
+    p = "Prefix(${rs})"
     prefixes_suffixes = flames ? 
-    Theme.nerd_with_colors("100;100;100", "40;40;40", "80;80;80", "60;60;60", "0;0;0", "", " ")    
-    : ice ? Theme.nerd_with_colors("0;168;204", "20;40;80", "12;123;147", "39;73;109", "0;0;0", "", " ")    
-      : powerline ? Theme.nerd_with_colors("239;79;79", "116;199;184", "255;205;163", "238;149;149", "0;0;0", "", "")    
-      : circle ? Theme.nerd_with_colors(htc("00af91"), htc("007965"), htc("f58634"), htc("ffcc29"), "0;0;0", "", "")    
-        : { "bat" => "", "cpu" => "", "tem" => "", "win" => "", "dat" => "", "mem" => "", "vol" => "" }
+    Theme.nerd_with_colors("646464", "282828", "505050", "3c3c3c", "000000", "", " ")    
+    : ice ? Theme.nerd_with_colors("00a8cc", "142850", "0c7b93", "27496d", "000000", "", " ")    
+      : powerline ? Theme.nerd_with_colors("ef4f4f", "74c7b8", "ffcda3", "ee9595", "000000", "", "")    
+      : circle ? Theme.nerd_with_colors("00af91", "007965", "f58634", "ffcc29", "000000", "", "")    
+        : { "bat" => s, "cpu" => s, "tem" => s, "win" => s, "dat" => p, "mem" => p, "vol" => p }
+    left_separator, right_separator = flames ? ["", " "] : ice ? ["", " "] : powerline ? ["", ""] : circle ? ["", ""] : nerd ? ["", ""] : ["|", "|"]
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     fg_color = "black" if powerline || circle
-    nerd = name.match(/.*no-nerd.*/).nil?
     font_size = "11"
     self.new(
       version = "#{VERSION}",
@@ -257,8 +225,8 @@ class Theme
       terminal_width = -1,
       font_spacing = get_font_spacing(term, font_size),
       bold = false,
-      left_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
-      right_separator = "#{ice || flames || powerline || circle ? "" : nerd ? "" : "|"}",
+      left_separator,
+      right_separator,
       bg_color = "#{bg_color}",
       fg_color = "#{fg_color}",
       position = "top",
@@ -325,6 +293,15 @@ class Theme
       "#      Logo(<reg match list>):    logo to display based on the value of the gauge\n" + \
       "#                                 should be the last field\n" + \
       "#                                 consist of a list of regexp to match with logos\n" + \
+      "# in Prefix and Suffix, you can use the following substitutions:\n" + \
+      "#      ${bgc <color>}             background color\n" + \
+      "#      ${fgc <color>}             foreground color\n" + \
+      "#      ${bgc_fgc <color> <color>} foreground color\n" + \
+      "#      ${ls}                      left separator\n" + \
+      "#      ${rs}                      right separator\n" + \
+      "#      ${endbg}                   end bg color\n" + \
+      "#      ${endfg}                   end fg color\n" + \
+      "# colors are specified in hexadecimal RGB\n" + \
       @lefts.map { |l| l.to_s }.join("\n") + "\n" + \
       "# right are gauges aligned to the right\n" + \
       "# they are configured like lefts\n" + \
@@ -343,7 +320,7 @@ class Theme
       term,
       font = conf["font"],
       terminal_width = conf["terminal_width"].to_i || -1,
-      font_spacing = conf.has_key?("font_spacing") ? conf["font_spacing"].to_i : get_font_spacing(term, font_size.to_i),
+      font_spacing = conf.has_key?("font_spacing") && conf["font_spacing"] != "" ? conf["font_spacing"].to_i : get_font_spacing(term, font_size.to_i),
       bold = conf["bold"] == "true",
       left_separator = conf["left_separator"].to_s,
       right_separator = conf["right_separator"].to_s,

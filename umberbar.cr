@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 require "./bar"
 
