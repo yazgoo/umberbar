@@ -34,6 +34,8 @@ class DrawingSource < DrawingItem
   @steps = [0]
   @prefix = ""
   @suffix = ""
+  @interpreted_prefix = ""
+  @interpreted_suffix = ""
 
   def logo(value)
     @logo.val.each do |k, v|
@@ -42,6 +44,52 @@ class DrawingSource < DrawingItem
         return v
       end
     end
+  end
+
+  def self.htc(hex)
+    hex.scan(/../).map{ |x| x[0].to_i(16)}.join(";")
+  end
+  
+  def self.fgc(color)
+    "[38;2;#{htc(color)}m"
+  end
+
+  def self.bgc(color)
+    "[48;2;#{htc(color)}m"
+  end
+
+  def self.bgc_fgc(a, b)
+    "#{bgc(a)}#{fgc(b)}"
+  end
+
+  def self.endfg
+    "[39m"
+  end
+
+  def self.endbg
+    "[49m"
+  end
+
+  def self.prefix(a)
+    "Prefix(#{a} )"
+  end
+
+  def self.suffix(a)
+    "Suffix(#{a})"
+  end
+
+  def self.interprete(s)
+    s.clone.gsub("${endfg}", self.endfg)
+      .gsub("${endbg}", self.endbg)
+        .gsub(/\${fgc ([^}]+)}/) { |x| c = $~; self.fgc(c[1]) }
+        .gsub(/\${bgc ([^}]+)}/) { |x| c = $~; self.bgc(c[1]) }
+        .gsub(/\${bgc_fgc ([^}]+) ([^}]+)}/) { |x| c = $~;self.bgc_fgc(c[1], c[2]) }
+
+  end
+
+  def interprete_separators(s, left_separator, right_separator)
+    s.gsub("${ls}", left_separator)
+      .gsub("${rs}", right_separator)
   end
 
   def weight(bold, value)
@@ -82,7 +130,9 @@ class DrawingSource < DrawingItem
     @source_name = source_name
     @logo = Logo.from_s logo
     @prefix = prefix
+    @interpreted_prefix = DrawingSource.interprete(prefix)
     @suffix = suffix
+    @interpreted_suffix = DrawingSource.interprete(suffix)
   end
 
   def self.extract_one_argument(name, vals, fallback, pattern="[^\)]")
@@ -134,7 +184,7 @@ class Left < DrawingSource
       delta_s = delta > 0 ?  " " * (delta + 1) : ""
       @previous_value = value_s
     end
-    print weight bold, "#{@prefix}#{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{left_separator} #{@suffix}#{delta_s}"
+    print weight bold, interprete_separators("#{@interpreted_prefix} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit} #{@interpreted_suffix}#{delta_s}", left_separator, right_separator)
   end
 
   def self.from_s(name, vals)
@@ -150,7 +200,7 @@ class Right < DrawingSource
 
   def draw(left_separator, right_separator, source, steps_colors, bold)
     value = source.get
-    s_colorized = weight bold, "#{@prefix} #{right_separator} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}#{@suffix}"
+    s_colorized = weight bold, interprete_separators("#{@interpreted_prefix} #{logo value} #{colorize_with_steps(source, value, steps_colors)}#{source.unit}#{@interpreted_suffix}", left_separator, right_separator)
     back = "\e[#{s_colorized.gsub(/\e\[[^m]*m/, "").size}D"
     print "#{back}#{s_colorized}#{back}"
   end
