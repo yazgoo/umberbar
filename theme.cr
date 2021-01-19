@@ -22,7 +22,7 @@ class Theme
   end
 
   def self.list
-    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "black-ice", "black-powerline", "black-circle", "black-tabs"]
+    ["black", "white", "black-no-nerd", "white-no-nerd", "black-flames", "black-ice", "black-powerline", "black-circle", "black-tabs", "pixelated"]
   end
 
   def self.positions
@@ -199,15 +199,15 @@ class Theme
     }
   end
 
-  def self.with_tabs
+  def self.with_tabs(a, b, c, d)
     {
-      "bat" => "Prefix( ${fgc 111d5e}${rs}${endfg}${bgc_fgc 111d5e c70039}) Suffix(${endbg}${fgc 111d5e}${ls}${endfg} )",
-      "cpu" => "Prefix(${fgc f37121}${rs}${endfg}${bgc f37121}) Suffix(${endbg}${fgc f37121}${ls}${endfg} )",
-      "tem" => "Prefix(${fgc c0e218}${rs}${endfg}${bgc c0e218}) Suffix(${endbg}${fgc c0e218}${ls}${endfg} )",
-      "win" => "Prefix(${fgc c70039}${rs}${endfg}${bgc c70039}) Suffix(${endbg}${fgc c70039}${ls}${endfg})",
-      "dat" => "Prefix(${endbg}${fgc f37121}${rs}${bgc f37121}${endfg}) Suffix( ${endbg}${fgc f37121}${ls}${endfg} )",
-      "mem" => "Prefix(${endbg}${fgc c0e218}${rs}${bgc c0e218}${endfg}) Suffix( ${endbg}${fgc c0e218}${ls}${endfg} )",
-      "vol" => "Prefix(${endbg}${fgc c70039}${rs}${bgc c70039}${endfg}) Suffix( ${endbg}${fgc c70039}${ls}${endfg} )",
+      "bat" => "Prefix( ${fgc #{a}}${rs}${endfg}${bgc_fgc #{a} #{b}}) Suffix(${endbg}${fgc #{a}}${ls}${endfg} )",
+      "cpu" => "Prefix(${fgc #{c}}${rs}${endfg}${bgc #{c}}) Suffix(${endbg}${fgc #{c}}${ls}${endfg} )",
+      "tem" => "Prefix(${fgc #{d}}${rs}${endfg}${bgc #{d}}) Suffix(${endbg}${fgc #{d}}${ls}${endfg} )",
+      "win" => "Prefix(${fgc #{b}}${rs}${endfg}${bgc #{b}}) Suffix(${endbg}${fgc #{b}}${ls}${endfg})",
+      "dat" => "Prefix(${endbg}${fgc #{c}}${rs}${bgc #{c}}${endfg}) Suffix( ${endbg}${fgc #{c}}${ls}${endfg} )",
+      "mem" => "Prefix(${endbg}${fgc #{d}}${rs}${bgc #{d}}${endfg}) Suffix( ${endbg}${fgc #{d}}${ls}${endfg} )",
+      "vol" => "Prefix(${endbg}${fgc #{b}}${rs}${bgc #{b}}${endfg}) Suffix( ${endbg}${fgc #{b}}${ls}${endfg} )",
     }
   end
 
@@ -217,6 +217,7 @@ class Theme
     powerline = name.match /.*powerline.*/
     circle = name.match /.*circle.*/
     tabs = name.match /.*tabs.*/
+    pixelated = name.match(/.*pixelated.*/)
     nerd = name.match(/.*no-nerd.*/).nil?
     s = "Suffix(${ls})"
     p = "Prefix(${rs})"
@@ -225,9 +226,17 @@ class Theme
     : ice ? Theme.nerd_with_colors("00a8cc", "142850", "0c7b93", "27496d", "000000")    
       : powerline ? Theme.nerd_with_colors("ef4f4f", "74c7b8", "ffcda3", "ee9595", "000000")    
       : circle ? Theme.nerd_with_colors("00af91", "007965", "f58634", "ffcc29", "000000")    
-      : tabs ? Theme.with_tabs
+      : tabs ? Theme.with_tabs("111d5e", "c70039", "f37121", "c0e218") 
+      : pixelated ? Theme.with_tabs("583d72", "9f5f80", "ffba93", "ff8e71")
         : { "bat" => s, "cpu" => s, "tem" => s, "win" => s, "dat" => p, "mem" => p, "vol" => p }
-    left_separator, right_separator = flames ? ["", " "] : ice ? ["", " "] : powerline ? ["", ""] : circle ? ["", ""] : tabs ? [" ", " "] : nerd ? ["", ""] : ["|", "|"]
+    left_separator, right_separator = flames ? ["", " "] 
+        : ice ? ["", " "] 
+        : powerline ? ["", ""] 
+        : circle ? ["", ""] 
+        : tabs ? [" ", " "] 
+        : pixelated ? [" ", ""] 
+        : nerd ? ["", ""] 
+        : ["|", "|"]
     black = name.match /.*black.*/
     bg_color, fg_color = black ? ["black", "grey"] : ["white", "black"]
     fg_color = "black" if powerline || circle
