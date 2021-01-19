@@ -11,6 +11,7 @@ minimalistic xmobar inspired status bar, in a terminal emulator.
 | black powerline | ![black powerline](snapshots/black-powerline.png) |
 | black circle | ![black circle](snapshots/black-circle.png) |
 | black tabs | ![black tabs](snapshots/black-tabs.png) |
+| pixelated | ![black tabs](snapshots/pixelated.png) |
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
