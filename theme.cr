@@ -218,6 +218,7 @@ class Theme
     circle = name.match /.*circle.*/
     tabs = name.match /.*tabs.*/
     pixelated = name.match(/.*pixelated.*/)
+    trapezoid = name.match(/.*trapezoid.*/)
     nerd = name.match(/.*no-nerd.*/).nil?
     s = "Suffix(${ls})"
     p = "Prefix(${rs})"
@@ -227,6 +228,7 @@ class Theme
       : powerline ? Theme.nerd_with_colors("ef4f4f", "74c7b8", "ffcda3", "ee9595", "000000")    
       : circle ? Theme.nerd_with_colors("00af91", "007965", "f58634", "ffcc29", "000000")    
       : tabs ? Theme.with_tabs("111d5e", "c70039", "f37121", "c0e218") 
+      : trapezoid ? Theme.with_tabs("16697a", "db6400", "ffa62b", "f8f1f1")
       : pixelated ? Theme.with_tabs("583d72", "9f5f80", "ffba93", "ff8e71")
         : { "bat" => s, "cpu" => s, "tem" => s, "win" => s, "dat" => p, "mem" => p, "vol" => p }
     left_separator, right_separator = flames ? ["", " "] 
@@ -235,6 +237,7 @@ class Theme
         : circle ? ["", ""] 
         : tabs ? [" ", " "] 
         : pixelated ? [" ", ""] 
+        : trapezoid ? ["", ""] 
         : nerd ? ["", ""] 
         : ["|", "|"]
     black = name.match /.*black.*/

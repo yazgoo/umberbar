@@ -88,7 +88,10 @@ class Bar
       print `clear`
       print `tput civis`
       while true
-        @theme = Bar.get_conf if @theme.changed?
+        if @theme.changed?
+          @theme = Bar.get_conf
+          print `clear`
+        end
         draw
         sleep @theme.refreshes
       end
