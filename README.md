@@ -13,6 +13,7 @@ minimalistic xmobar inspired status bar, in a terminal emulator.
 | black tabs | ![black tabs](snapshots/black-tabs.png) |
 | pixelated | ![black tabs](snapshots/pixelated.png) |
 | trapezoid | ![trapezoid](snapshots/trapezoid.png) |
+| slash | ![trapezoid](snapshots/slash.png) |
 
 If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
 
