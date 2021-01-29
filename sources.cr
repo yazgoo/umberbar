@@ -123,11 +123,17 @@ end
 
 class WindowCommand < Source
 
+  @max_width = 20
+
+  def initialize
+    @max_width = (`tput cols`.to_i / 3).to_i
+  end
+
   def get
     result = `xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null`.chomp.split("\n")
     if result.size == 2
       pid, name = result
-      "#{File.read("/proc/#{pid}/comm").chomp} - #{name}"
+      "#{File.read("/proc/#{pid}/comm").chomp} - #{name}"[0..@max_width]
     else
       ""
     end
