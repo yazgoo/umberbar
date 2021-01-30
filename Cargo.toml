@@ -1,0 +1,17 @@
+
+[package]
+name = "umberbar"
+version = "0.0.18"
+authors = ["yazgoo <yazgoo@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = "minimalist X11 window manager"
+readme = "README.md"
+homepage = "https://github.com/yazgoo/umberbar"
+repository = "https://github.com/yazgoo/umberbar"
+keywords = ["bar", "x11", "terminal"]
+categories = ["GUI"]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+systemstat = "0.1.6"
