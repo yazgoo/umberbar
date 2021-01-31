@@ -3,22 +3,26 @@ use std::time::Duration;
 use std::collections::HashMap;
 use std::process::Command;
 use tokio::time::sleep;
-use systemstat::{System, Platform, saturating_sub_bytes};
+use systemstat::{System, Platform, saturating_sub_bytes, DelayedMeasurement, CPULoad};
 use std::io::Write;
 use std::fs::File;
 
 type Logo = fn(&Value) -> String;
 
-#[derive(Debug, Clone)]
 pub enum Value {
     S(String),
     I(u8),
 }
 
-#[derive(Debug, Clone)]
+pub enum SourceData {
+    CPU(DelayedMeasurement<CPULoad>),
+    Nothing
+}
+
 pub struct Source {
     pub unit: Option<String>,
-    pub get: fn() -> Value,
+    pub get: fn(&SourceData) -> (Value, SourceData),
+    data: SourceData,
 }
 
 pub struct Sources {
@@ -28,7 +32,8 @@ macro_rules! i_source {
     ($x:expr, $y:expr) =>  {
     Source {
       unit: Some($x.to_string()),
-      get: || Value::I($y(System::new()) as u8)
+      get: |_| (Value::I($y(System::new()) as u8), SourceData::Nothing),
+      data: SourceData::Nothing,
     }
   }
 }
@@ -37,7 +42,8 @@ macro_rules! s_source {
     ($x:expr, $y:expr) =>  {
     Source {
       unit: Some($x.to_string()),
-      get: || Value::S($y),
+      get: |_| (Value::S($y), SourceData::Nothing),
+      data: SourceData::Nothing,
     }
   }
 }
@@ -48,8 +54,28 @@ impl Sources {
       i_source!("%", |s: System| s.battery_life().map_or(0.0, |x| (x.remaining_capacity * 100.0)))
   }
 
+  fn build_cpu(v: Value) -> (Value, SourceData) {
+      match System::new().cpu_load_aggregate() {
+          Ok(r) => (v, SourceData::CPU(r)),
+          Err(_) => (v, SourceData::Nothing),
+      }
+  }
+
   pub fn cpu() -> Source {
-      i_source!("%", |_| 0.0) /* TODO implement */
+      Source {
+          unit: Some("%".to_string()),
+          get: |d| {
+              match d {
+                  SourceData::Nothing => Sources::build_cpu(Value::I(0)),
+                  SourceData::CPU(cpu) =>  {
+                      let cpu = cpu.done().unwrap();
+                      Sources::build_cpu(Value::I(((cpu.system + cpu.user) * 100.0) as u8))
+                  }
+                  
+              }
+          },
+          data: SourceData::Nothing,
+      }
   }
 
   pub fn cpu_temp() -> Source {
@@ -215,8 +241,8 @@ impl Palette {
             colors: vec![
                 (0,0xf6f5f5),
                 (0,0xd3e0ea),
-                (0,0x1687a7),
-                (0,0x276678),
+                (0xf6f5f5,0x1687a7),
+                (0xd3e0ea,0x276678),
             ]
         }
     }
@@ -256,9 +282,20 @@ impl ThemedWidgets {
              }}).collect())
     }
 
+    pub fn flames(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        (widget_position,
+         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
+             let fg_bg = palette.get(i);
+             Widget {
+                 source: source_logo.0,
+                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
+                 suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s(" ").efg().s(" ").clone(),
+                 logo: source_logo.1,
+             }}).collect())
+    }
+
 }
 
-#[derive(Clone)]
 pub struct Widget {
     pub source: Source,
     pub prefix: ColoredString,
@@ -291,8 +328,10 @@ pub enum WidgetPosition {
 }
 
 impl Widget {
-    pub async fn draw(&self, widget_position: &WidgetPosition) {
-        let value = (self.source.get)();
+    pub async fn draw(&mut self, widget_position: &WidgetPosition) {
+        let value_data = (self.source.get)(&self.source.data);
+        let value = value_data.0;
+        self.source.data = value_data.1;
         let logo = (self.logo)(&value);
         let value_s = match value {
             Value::S(s) => s,
@@ -324,7 +363,7 @@ pub struct UmberBar {
 
 impl UmberBar {
 
-    pub async fn draw_at(widget_position: &WidgetPosition, widgets: &Vec<Widget>) {
+    pub async fn draw_at(widget_position: &WidgetPosition, widgets: &mut Vec<Widget>) {
         for widget in widgets {
             widget.draw(&widget_position).await
         }
@@ -336,9 +375,9 @@ impl UmberBar {
         Ansi::move_to(0, 0);
         print!("{}", " ".repeat(self.conf.terminal_width as usize));
         Ansi::move_to(0, 0);
-        UmberBar::draw_at(&left, self.conf.widgets.get(&left).unwrap_or(&vec![])).await;
+        UmberBar::draw_at(&left, self.conf.widgets.get_mut(&left).unwrap_or(&mut vec![])).await;
         Ansi::move_to(0, self.conf.terminal_width as usize);
-        UmberBar::draw_at(&right, self.conf.widgets.get(&right).unwrap_or(&vec![])).await;
+        UmberBar::draw_at(&right, self.conf.widgets.get_mut(&right).unwrap_or(&mut vec![])).await;
         let _ = std::io::stdout().flush();
     }
 
