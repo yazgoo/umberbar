@@ -165,8 +165,8 @@ impl ColoredString {
 
     fn htc(color: Color) -> String {
         let b = color & 0xff;
-        let g = color >> 1 & 0xff;
-        let r = color >> 2 & 0xff;
+        let g = (color >> 8) & 0xff;
+        let r = (color >> 16) & 0xff;
         format!("{};{};{}", r, g, b)
     }
 
@@ -193,22 +193,69 @@ impl ColoredString {
 
 }
 
+pub type FgColorAndBgColor = (Color, Color);
+
+pub struct Palette {
+    source: Option<String>,
+    colors: Vec<FgColorAndBgColor>,
+}
+
+impl Palette {
+
+    pub fn black() -> Palette {
+        Palette {
+            source: None,
+            colors: vec![(0xfffff, 0)]
+        }
+    }
+
+    pub fn grey_blue_cold_winter() -> Palette {
+        Palette {
+            source: Some("https://colorhunt.co/palette/252807".to_string()),
+            colors: vec![
+                (0,0xf6f5f5),
+                (0,0xd3e0ea),
+                (0,0x1687a7),
+                (0,0x276678),
+            ]
+        }
+    }
+
+    pub fn get(&self, i: usize) -> &FgColorAndBgColor {
+        self.colors.get(i % self.colors.len()).unwrap_or(&(0,0xff))
+    }
+
+}
+
 pub struct ThemedWidgets {
 }
 
 impl ThemedWidgets {
 
-    pub fn simple(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>) -> (WidgetPosition, Vec<Widget>) {
-        let left = widget_position == WidgetPosition::Left;
+    pub fn simple(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         (widget_position,
-         sources_logos.into_iter().map( |source_logo|
+         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
+             let fg_bg = palette.get(i);
              Widget {
                  source: source_logo.0,
-                 prefix: ColoredString::new().bg(0).fg(0xfffff).s(" ").clone(),
+                 prefix: ColoredString::new().bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
                  suffix: ColoredString::new().s(" ").ebg().efg().s(" ").clone(),
                  logo: source_logo.1,
-             }).collect())
+             }}).collect())
     }
+
+    pub fn slash(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        (widget_position,
+         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
+             let fg_bg = palette.get(i);
+             Widget {
+                 source: source_logo.0,
+                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
+                 suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s("").efg().s(" ").clone(),
+                 logo: source_logo.1,
+             }}).collect())
+    }
+
 }
 
 #[derive(Clone)]
@@ -286,6 +333,8 @@ impl UmberBar {
     pub async fn draw(&mut self) {
         let left = WidgetPosition::Left;
         let right = WidgetPosition::Right;
+        Ansi::move_to(0, 0);
+        print!("{}", " ".repeat(self.conf.terminal_width as usize));
         Ansi::move_to(0, 0);
         UmberBar::draw_at(&left, self.conf.widgets.get(&left).unwrap_or(&vec![])).await;
         Ansi::move_to(0, self.conf.terminal_width as usize);
