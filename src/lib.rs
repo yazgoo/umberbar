@@ -6,6 +6,7 @@ use tokio::time::sleep;
 use systemstat::{System, Platform, saturating_sub_bytes, DelayedMeasurement, CPULoad};
 use std::io::Write;
 use std::fs::File;
+use regex::Regex;
 
 type Logo = fn(&Value) -> String;
 
@@ -93,10 +94,21 @@ impl Sources {
   }
 
   pub fn window() -> Source {
-      s_source!("", { let mut s = Command::new("sh")
+      s_source!("", { 
+          let mut s = Command::new("sh")
           .arg("-c")
-              .arg("xdotool getwindowfocus getwindowname 2>/dev/null").output().map_or("".to_string(), 
-                  |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); s.pop(); s})
+              .arg("xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null").output().map_or("".to_string(), 
+                  |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); 
+          let lines : Vec<&str> = s.split("\n").collect();
+          if lines.len() >= 2 {
+            let mut comm = std::fs::read_to_string(format!("/proc/{}/comm", lines[0])).unwrap_or("".to_string());
+            comm.pop();
+            format!("{} - {}", comm, lines[1])
+          }
+          else {
+              "".to_string()
+          }
+          })
   }
 }
 
@@ -134,8 +146,55 @@ impl Logos {
         |_| " ".to_string()
     }
 
+    fn website(s: &str) -> String {
+        let browsers = "^(chrom|firefox|qutebrowser)";
+        format!("{}.* {}.*", browsers, s)
+    }
+
+    fn terminals() -> String {
+    "^(alacritty|termite|xterm)".to_string()
+    }
+
+    fn terminal(s: &str) -> String {
+        format!("{}.* {}.*", Logos::terminals(), s)
+    }
+
     pub fn window() -> Logo {
-        |_| " ".to_string()
+        |value| { 
+            match value {
+                Value::S(value) => {
+                    let mut matches : HashMap<String, Regex> = HashMap::new();
+                    macro_rules! nm {
+                        ($x:expr, $y:expr) =>  {
+                            matches.insert($x.to_string(), Regex::new($y).unwrap());
+                        }
+                    }
+                    nm!(" ", &Logos::website("Stack Overflow"));
+                    nm!(" ", &Logos::website("Facebook"));
+                    nm!("暑", &Logos::website("Twitter"));
+                    nm!(" ", &Logos::website("YouTube"));
+                    nm!(" ", &Logos::website("reddit"));
+                    nm!(" ", &Logos::website("Wikipedia"));
+                    nm!(" ", &Logos::website("GitHub"));
+                    nm!(" ", &Logos::website("WhatsApp"));
+                    nm!(" ", "signal-desktop .*");
+                    nm!(" ", &Logos::terminal("n?vim"));
+                    nm!(" ", "^(mpv|mplayer).*");
+                    nm!(" ", &(Logos::terminals() + ".*"));
+                    nm!(" ", "^firefox.*");
+                    nm!(" ", "^chrom.*");
+                    nm!(" ", "^gimp.*");
+                    matches.insert(" ".to_string(), Regex::new("^firefox.*").unwrap());
+                    for (logo, reg) in &matches {
+                        if reg.is_match(value) {
+                            return logo.to_string();
+                        }
+                    }
+                },
+                Value::I(_) => {},
+            }
+            " ".to_string()
+        }
     }
 
 }
@@ -173,6 +232,11 @@ impl ColoredString {
         self.string.push(ColoredStringItem::FgColor(color));
         self
     }
+
+    pub fn fg_bg(&mut self, colors: &(Color, Color)) -> &mut ColoredString {
+        self.fg(colors.0).bg(colors.1)
+    }
+
 
     pub fn s(&mut self, s: &str) -> &mut ColoredString {
         self.string.push(ColoredStringItem::S(s.to_string()));
@@ -264,7 +328,7 @@ impl ThemedWidgets {
              let fg_bg = palette.get(i);
              Widget {
                  source: source_logo.0,
-                 prefix: ColoredString::new().bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
+                 prefix: ColoredString::new().fg_bg(fg_bg).s(" ").clone(),
                  suffix: ColoredString::new().s(" ").ebg().efg().s(" ").clone(),
                  logo: source_logo.1,
              }}).collect())
@@ -276,7 +340,7 @@ impl ThemedWidgets {
              let fg_bg = palette.get(i);
              Widget {
                  source: source_logo.0,
-                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
+                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").fg_bg(fg_bg).s(" ").clone(),
                  suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s("").efg().s(" ").clone(),
                  logo: source_logo.1,
              }}).collect())
@@ -288,7 +352,7 @@ impl ThemedWidgets {
              let fg_bg = palette.get(i);
              Widget {
                  source: source_logo.0,
-                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").bg(fg_bg.1).fg(fg_bg.0).s(" ").clone(),
+                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").fg_bg(fg_bg).s(" ").clone(),
                  suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s(" ").efg().s(" ").clone(),
                  logo: source_logo.1,
              }}).collect())
