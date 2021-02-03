@@ -24,6 +24,8 @@ All versions >= 0.7 are rust based.
 
 You need alacritty installed and in your path (this project will run alacritty)
 
+You also need nerd fonts for logos and most themes to work.
+
 ## using it
 
 umberbar is used/configured in rust, here is how to use it:
