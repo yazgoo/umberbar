@@ -2,6 +2,8 @@
 
 minimalistic xmobar inspired status bar, in a terminal emulator. 
 
+![UmberBar Screenshot](screenshot.jpg)
+
 # rust implementation
 
 This project was previously written in crystal, it is being ported to rust.
