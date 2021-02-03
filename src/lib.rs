@@ -329,6 +329,18 @@ impl Palette {
         }
     }
 
+    pub fn black_grey_turquoise_dark() -> Palette {
+        Palette {
+            _source: Some("https://colorhunt.co/palette/2763".to_string()),
+            colors: vec![
+                (0xeeeeee,0x222831),
+                (0xeeeeee,0x393e46),
+                (0,0x00adb5),
+                (0,0xeeeeee),
+            ]
+        }
+    }
+
     pub fn red_pink_turquoise_spring() -> Palette {
         Palette {
             _source: Some("https://colorhunt.co/palette/2257091".to_string()),
@@ -364,31 +376,27 @@ impl ThemedWidgets {
              }}).collect())
     }
 
+    pub fn detached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        (widget_position,
+         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
+             let fg_bg = palette.get(i);
+             Widget {
+                 source: source_logo.0,
+                 prefix: ColoredString::new().fg(fg_bg.1).s(left_separator).fg_bg(fg_bg).s(" ").clone(),
+                 suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s(right_separator).efg().s(" ").clone(),
+                 logo: source_logo.1,
+             }}).collect())
+    }
+
     pub fn slash(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
-        (widget_position,
-         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
-             let fg_bg = palette.get(i);
-             Widget {
-                 source: source_logo.0,
-                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").fg_bg(fg_bg).s(" ").clone(),
-                 suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s("").efg().s(" ").clone(),
-                 logo: source_logo.1,
-             }}).collect())
+        ThemedWidgets::detached(" ", "", widget_position, sources_logos, palette)
     }
 
-    pub fn flames(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
-        (widget_position,
-         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
-             let fg_bg = palette.get(i);
-             Widget {
-                 source: source_logo.0,
-                 prefix: ColoredString::new().fg(fg_bg.1).s(" ").fg_bg(fg_bg).s(" ").clone(),
-                 suffix: ColoredString::new().s(" ").ebg().fg(fg_bg.1).s(" ").efg().s(" ").clone(),
-                 logo: source_logo.1,
-             }}).collect())
+    pub fn tab(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        ThemedWidgets::detached(" ", " ", widget_position, sources_logos, palette)
     }
 
-    pub fn powerline(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn attached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         let sources_logos_len = sources_logos.len();
         let left = widget_position == WidgetPosition::Left;
         (widget_position,
@@ -402,13 +410,13 @@ impl ThemedWidgets {
                  if i + 1 < sources_logos_len {
                      s.bg(n_fg_bg.1);
                  }
-                 s.fg(fg_bg.1).s("").fg_bg(fg_bg).s(" ").clone()
+                 s.fg(fg_bg.1).s(right_separator).fg_bg(fg_bg).s(" ").clone()
              };
              let suffix = if left { 
                  let mut s = ColoredString::new();
                  s.s(" ").ebg().fg(fg_bg.1);
                  if i + 1 < sources_logos_len { s.bg(n_fg_bg.1); };
-                 s.s("").ebg().efg().clone()
+                 s.s(left_separator).ebg().efg().clone()
              } else {
                  ColoredString::new().s(" ").ebg().efg().clone()
              };
@@ -420,6 +428,14 @@ impl ThemedWidgets {
              }}).collect())
     }
 
+    pub fn powerline(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        ThemedWidgets::attached("", "", widget_position, sources_logos, palette)
+
+    }
+
+    pub fn flames(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        ThemedWidgets::attached(" ", " ", widget_position, sources_logos, palette)
+    }
 }
 
 pub struct Widget {
