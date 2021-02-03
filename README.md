@@ -2,104 +2,29 @@
 
 minimalistic xmobar inspired status bar, in a terminal emulator. 
 
-| theme | image |
-| ----- | ----- |
-| black | ![black theme](snapshots/black.png) |
-| white-no-nerd | ![white theme](snapshots/white-no-nerd.png) |
-| black flames | ![black flames](snapshots/black-flames.png) |
-| black ice | ![black ice](snapshots/black-ice.png) |
-| black powerline | ![black powerline](snapshots/black-powerline.png) |
-| black circle | ![black circle](snapshots/black-circle.png) |
-| black tabs | ![black tabs](snapshots/black-tabs.png) |
-| pixelated | ![black tabs](snapshots/pixelated.png) |
-| trapezoid | ![trapezoid](snapshots/trapezoid.png) |
-| slash | ![trapezoid](snapshots/slash2.png) |
+# rust implementation
 
-If you want a window manager that plays along well with it, have a look at [umberwm](https://github.com/yazgoo/umberwm/).
+This project was previously written in crystal, it is being ported to rust.
 
-## prerequisites 
+Crystal version allowed me to have a clear view of the features this project needs and the ones it does not.
 
-- for black (default) and white theme, you need [nerdfonts](https://www.nerdfonts.com/) installed
-- you need xterm or urxvt or alacritty installed (urxvt and alacritty support background transparency)
-- you need xrandr
+It is based on the same concepts as umberwm.
 
-## downloading
+All versions >= 0.7 are rust based.
 
-Binaries are available on [release page](https://github.com/yazgoo/umberbar/releases)
+## design goals and features (rust implementation)
 
-## configuration
+- [x] kiss: where possible build upon existing crates, use alacritty for rendering
+- [x] configuration as code (like umberwm)
+- [x] support theming (as code), user defined palette
+- [x] single file (~500 LoC) -- may be subject to change
+- [ ] loads of themes
 
-By default, umberbar will create `~/.config/umberbar/umberbar.conf` with default theme.
-To select a different theme use `-t <theme_name>` and to save it it to the configuration use `-s` (`-h` for more help).
+## requirements
 
-Generated configuration will have comments discribing each fields.
+You need alacritty installed and in your path (this project will run alacritty)
 
-You can also add additional configuration in `~/.config/umberbar/override.conf`.
-This will allow you to switch themes via `-t` and `-s` without loosing your changes.
-The configuration parameters you set in this file will override the ones in umberbar.conf.
+## using it
 
-For example, here are contents of my override.conf tailored for urxvt:
-
-```
-term=urxvt
-terminal_width=241
-font=FuraCode Nerd Font Mono
-```
-
-## running from binaries
-
-```
-./umberbar
-``` 
-
-## building / running it (crystal)
-
-```
-crystal build umberbar.cr
-```
-
-```
-./umberbar
-```
-
-## running it (ruby)
-
-```
-./umberbar.rb
-```
-
-## using with urxvt
-
-You can also use urxvt instead of xterm, which is nice becaues
-urxvt has background transparency support.
-
-Your urxvt version should also have truecolor enabled.
-
-just run:
-
-```
-./umberbar -te urxvt
-```
-
-For nerd font to be fully operational, make sure the font you're using is monospaced.
-
-## why does this project use crystal ?
-
-crystal gives this project many advantages:
-
-- type safety (because type checking makes everything safer and easier to reason with)
-- nil protection (which is part of the type safety I guess)
-- because we compile for crystal, those guarantees also translate to ruby runtime
-- self contained binaries
-
-## what are the painpoints of developing for both ruby and crystal ?
-
-Although both languages are really close, crystal is not made to be compatible with ruby.
-This project uses the lowest common denominator between those (so no macro, no introspection).
-Where there were incompatibilites, we used the method `is_ruby?`.
-
-Here is a list of incompatibilities and how we handle those:
-
-  - `Time.now` does not exist in crystal so we use `date` command in ruby
-  - `Process.exec` does not have the same exact interface
-  - umberbar calls itself in xterm, we use `__FILE__` in ruby, `PROGRAM_NAME` in crystal
+1. create a project with umberbar crate as a dependency.
+2. create a main.rs like the one in this project.
