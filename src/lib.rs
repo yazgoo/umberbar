@@ -16,6 +16,7 @@ pub enum Value {
 }
 
 pub enum SourceData {
+    U(usize),
     CPU(DelayedMeasurement<CPULoad>),
     Nothing
 }
@@ -67,11 +68,11 @@ impl Sources {
           unit: Some("%".to_string()),
           get: |d| {
               match d {
-                  SourceData::Nothing => Sources::build_cpu(Value::I(0)),
                   SourceData::CPU(cpu) =>  {
                       let cpu = cpu.done().unwrap();
                       Sources::build_cpu(Value::I(((cpu.system + cpu.user) * 100.0) as u8))
-                  }
+                  },
+                  _ => Sources::build_cpu(Value::I(0)),
                   
               }
           },
@@ -93,22 +94,37 @@ impl Sources {
               .arg("date | sed -E 's/:[0-9]{2} .*//'").output().map_or("".to_string(), |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); s.pop(); s})
   }
 
-  pub fn window() -> Source {
-      s_source!("", { 
-          let mut s = Command::new("sh")
-          .arg("-c")
-              .arg("xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null").output().map_or("".to_string(), 
-                  |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); 
-          let lines : Vec<&str> = s.split("\n").collect();
-          if lines.len() >= 2 {
-            let mut comm = std::fs::read_to_string(format!("/proc/{}/comm", lines[0])).unwrap_or("".to_string());
-            comm.pop();
-            format!("{} - {}", comm, lines[1])
-          }
-          else {
-              "".to_string()
-          }
-          })
+  pub fn window(max_chars: usize) -> Source {
+      Source {
+          unit: None, 
+          get: |d| { 
+              let s = Command::new("sh")
+                  .arg("-c")
+                  .arg("xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null").output().map_or("".to_string(), 
+                      |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); 
+              let lines : Vec<&str> = s.split("\n").collect();
+              if lines.len() >= 2 {
+                  let mut comm = std::fs::read_to_string(format!("/proc/{}/comm", lines[0])).unwrap_or("".to_string());
+                  comm.pop();
+                  let s = format!("{} - {}", comm, lines[1]);
+                  match d {
+                      SourceData::U(max) =>
+                          (Value::S(match s.char_indices().nth(*max) {
+                              None => s,
+                              Some((idx, _)) => (&s[..idx]).to_string(),
+                          }), SourceData::U(*max)),
+                      _ => (Value::S(s), SourceData::Nothing)
+                  }
+              }
+              else {
+                  match d {
+                      SourceData::U(max) => (Value::S("".to_string()), SourceData::U(*max)),
+                      _ => (Value::S("".to_string()), SourceData::Nothing),
+                  }
+              }
+          },
+          data: SourceData::U(max_chars),
+      }
   }
 }
 
@@ -286,7 +302,7 @@ impl ColoredString {
 pub type FgColorAndBgColor = (Color, Color);
 
 pub struct Palette {
-    source: Option<String>,
+    _source: Option<String>,
     colors: Vec<FgColorAndBgColor>,
 }
 
@@ -294,14 +310,14 @@ impl Palette {
 
     pub fn black() -> Palette {
         Palette {
-            source: None,
+            _source: None,
             colors: vec![(0xfffff, 0)]
         }
     }
 
     pub fn grey_blue_cold_winter() -> Palette {
         Palette {
-            source: Some("https://colorhunt.co/palette/252807".to_string()),
+            _source: Some("https://colorhunt.co/palette/252807".to_string()),
             colors: vec![
                 (0,0xf6f5f5),
                 (0,0xd3e0ea),

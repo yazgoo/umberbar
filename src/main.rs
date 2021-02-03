@@ -3,9 +3,9 @@ extern crate umberbar;
 use std::time::Duration;
 use umberbar::{Conf, umberbar, WidgetPosition, Sources, Logos, ThemedWidgets, Palette, Widget};
 use std::collections::HashMap;
-
 #[tokio::main]
 async fn main() {
+    let terminal_width = 178;
     let palette = Palette::grey_blue_cold_winter();
     let mut widgets : HashMap<WidgetPosition, Vec<Widget>> = HashMap::new();
     let lefts = ThemedWidgets::slash(
@@ -13,7 +13,7 @@ async fn main() {
                 (Sources::battery(), Logos::battery()),
                 (Sources::cpu(), Logos::cpu()),
                 (Sources::cpu_temp(), Logos::cpu_temp()),
-                (Sources::window(), Logos::window()),
+                (Sources::window(terminal_width / 3), Logos::window()),
                 ], &palette);
     let rights = ThemedWidgets::slash(
                     WidgetPosition::Right, vec![
@@ -25,7 +25,7 @@ async fn main() {
     umberbar(Conf {
         font: "DroidSansMono Nerd Font".to_string(),
         font_size: 8,
-        terminal_width: 178,
+        terminal_width: terminal_width as u16,
         refresh_time: Duration::from_secs(2),
         widgets: widgets,
     }).run().await;
