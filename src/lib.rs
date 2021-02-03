@@ -53,7 +53,8 @@ macro_rules! s_source {
 impl Sources {
 
   pub fn battery() -> Source {
-      i_source!("%", |s: System| s.battery_life().map_or(0.0, |x| (x.remaining_capacity * 100.0)))
+      i_source!("%", |s: System| s.battery_life().map_or(0.0, |x| (
+                  if x.remaining_capacity > 1.0 { 100.0 } else { x.remaining_capacity * 100.0})))
   }
 
   fn build_cpu(v: Value) -> (Value, SourceData) {
@@ -70,7 +71,8 @@ impl Sources {
               match d {
                   SourceData::CPU(cpu) =>  {
                       let cpu = cpu.done().unwrap();
-                      Sources::build_cpu(Value::I(((cpu.system + cpu.user) * 100.0) as u8))
+                      let cpu = cpu.system + cpu.user;
+                      Sources::build_cpu(Value::I((cpu * 100.0) as u8))
                   },
                   _ => Sources::build_cpu(Value::I(0)),
                   
@@ -85,7 +87,7 @@ impl Sources {
   }
 
   pub fn memory() -> Source {
-      i_source!("%", |s: System| s.memory().map_or(0.0, |mem| (saturating_sub_bytes(mem.total, mem.free).as_u64()  / mem.total.as_u64()) as f32))
+      i_source!("%", |s: System| s.memory().map_or(0.0, |mem| (saturating_sub_bytes(mem.total, mem.free).as_u64()  * 100 / mem.total.as_u64()) as f32))
   }
 
   pub fn date() -> Source {

@@ -26,7 +26,7 @@ async fn main() {
         font: "DroidSansMono Nerd Font".to_string(),
         font_size: 8,
         terminal_width: terminal_width as u16,
-        refresh_time: Duration::from_secs(2),
+        refresh_time: Duration::from_secs(5),
         widgets: widgets,
     }).run().await;
 }
