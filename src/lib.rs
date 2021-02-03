@@ -329,6 +329,18 @@ impl Palette {
         }
     }
 
+    pub fn red_pink_turquoise_spring() -> Palette {
+        Palette {
+            _source: Some("https://colorhunt.co/palette/2257091".to_string()),
+            colors: vec![
+                (0,0xef4f4f),
+                (0,0xee9595),
+                (0,0xffcda3),
+                (0,0x74c7b8),
+            ]
+        }
+    }
+
     pub fn get(&self, i: usize) -> &FgColorAndBgColor {
         self.colors.get(i % self.colors.len()).unwrap_or(&(0,0xff))
     }
