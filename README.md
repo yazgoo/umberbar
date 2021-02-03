@@ -26,5 +26,9 @@ You need alacritty installed and in your path (this project will run alacritty)
 
 ## using it
 
-1. create a project with umberbar crate as a dependency.
-2. create a main.rs like the one in this project.
+umberbar is used/configured in rust, here is how to use it:
+
+1. install rust and cargo https://doc.rust-lang.org/cargo/getting-started/installation.html
+2. clone template project (__:warning: it is a different repository__): `git clone https://github.com/yazgoo/myumberbar`
+3. edit src/main.rs (see comments for more details)
+4. run `cargo build`, binary is available in target/debug/myumerbar
