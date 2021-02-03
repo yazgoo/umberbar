@@ -2,7 +2,7 @@
 
 minimalistic xmobar inspired status bar, in a terminal emulator. 
 
-![UmberBar Screenshot](screenshot.jpg)
+![UmberBar Screenshot](screenshot.png)
 
 # rust implementation
 
