@@ -1,7 +1,7 @@
 
 [package]
 name = "umberbar"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["yazgoo <yazgoo@gmail.com>"]
 edition = "2018"
 license = "MIT"

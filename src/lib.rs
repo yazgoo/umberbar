@@ -376,6 +376,38 @@ impl ThemedWidgets {
              }}).collect())
     }
 
+    pub fn powerline(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+        let sources_logos_len = sources_logos.len();
+        let left = widget_position == WidgetPosition::Left;
+        (widget_position,
+         sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
+             let fg_bg = palette.get(i);
+             let n_fg_bg = palette.get(i + 1);
+             let prefix = if left {
+                 ColoredString::new().fg_bg(fg_bg).s(" ").clone()
+             } else {
+                 let mut s = ColoredString::new();
+                 if i + 1 < sources_logos_len {
+                     s.bg(n_fg_bg.1);
+                 }
+                 s.fg(fg_bg.1).s("").fg_bg(fg_bg).s(" ").clone()
+             };
+             let suffix = if left { 
+                 let mut s = ColoredString::new();
+                 s.s(" ").ebg().fg(fg_bg.1);
+                 if i + 1 < sources_logos_len { s.bg(n_fg_bg.1); };
+                 s.s("").ebg().efg().clone()
+             } else {
+                 ColoredString::new().s(" ").ebg().efg().clone()
+             };
+             Widget {
+                 source: source_logo.0,
+                 prefix: prefix,
+                 suffix: suffix,
+                 logo: source_logo.1,
+             }}).collect())
+    }
+
 }
 
 pub struct Widget {
