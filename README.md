@@ -4,6 +4,8 @@ minimalistic xmobar inspired status bar, in a terminal emulator.
 
 ![UmberBar Screenshot](screenshot.png)
 
+Video introduction [on odysee](https://odysee.com/@goo:c/umberbar:5) or [on youtube](https://youtu.be/BmK9mQ1K72I).
+
 ## rust implementation
 
 This project was previously written in crystal (see crystal directory), it is being ported to rust.
