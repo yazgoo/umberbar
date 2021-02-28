@@ -540,7 +540,7 @@ impl UmberBar {
     }
 
     fn run_terminal(&mut self) {
-          let output = format!("font:\n  family: {}\n  size: {}\nbackground_opacity: 0", self.conf.font, self.conf.font_size);
+          let output = format!("font:\n  family: {}\n  size: {}\nbackground_opacity: 0\nwindow:\n  position:\n    x: 0\n    y: 0\n  dimensions:\n    columns: {}\n    lines: 1\n", self.conf.font, self.conf.font_size, self.conf.terminal_width);
           let alacritty_conf_path = "/tmp/alacritty-umberbar-rs.yml";
           let mut ofile = File::create(alacritty_conf_path)
               .expect("unable to create file");
@@ -552,16 +552,11 @@ impl UmberBar {
                     .env("within_umberbar", "true")
                     .arg("--config-file")
                     .arg(alacritty_conf_path)
-                    .arg("--position")
-                    .arg("0")
-                    .arg("0")
-                    .arg("--dimensions")
-                    .arg(format!("{}", self.conf.terminal_width))
-                    .arg("1")
                     .arg("--class")
                     .arg("xscreensaver")
                     .arg("--command")
-                    .arg(cmd).output();
+                    .arg(cmd)
+                    .status();
                 }
             Err(e) => { print!("{}", e); }
         }
