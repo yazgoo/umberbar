@@ -21,15 +21,15 @@ pub enum SourceData {
     Nothing
 }
 
-pub struct Source {
-    pub unit: Option<String>,
-    pub get: fn(&SourceData) -> (Value, SourceData),
-    data: SourceData,
+pub trait Source {
+    fn unit(&self) -> Option<String>;
+    fn get(&mut self) -> Value;
 }
 
 pub struct Sources {
 }
 
+/*
 macro_rules! i_source {
     ($x:expr, $y:expr) =>  {
     Source {
@@ -49,84 +49,145 @@ macro_rules! s_source {
     }
   }
 }
+*/
+
+pub struct BatterySource {
+}
+
+impl Source for BatterySource {
+    fn unit(&self) -> Option<String> {
+        Some("%".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+        let s = System::new();
+        Value::I(s.battery_life().map_or(0.0, |x| (
+                  if x.remaining_capacity > 1.0 { 100.0 } else { x.remaining_capacity * 100.0})) as u8)
+    }
+}
+
+pub struct CpuSource {
+    delayed_measurement_opt: Option<DelayedMeasurement<CPULoad>>,
+}
+
+impl Source for CpuSource {
+
+    fn unit(&self) -> Option<String> {
+        Some("%".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+        let res = match &self.delayed_measurement_opt {
+            Some(cpu) => {
+                let cpu = cpu.done().unwrap();
+                let cpu = cpu.system + cpu.user;
+                Value::I((cpu * 100.0) as u8)
+            },
+            _ => Value::I(0),
+        };
+        self.delayed_measurement_opt = match System::new().cpu_load_aggregate() {
+            Ok(r) => Some(r),
+            Err(_) => None
+        };
+        res
+    }
+}
+
+pub struct CpuTempSource {
+}
+
+impl Source for CpuTempSource {
+    fn unit(&self) -> Option<String> {
+        Some("°C".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+        Value::I(System::new().cpu_temp().unwrap_or(0.0) as u8)
+    }
+}
+
+pub struct MemorySource {
+}
+
+impl Source for MemorySource {
+    fn unit(&self) -> Option<String> {
+        Some("%".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+        Value::I(System::new().memory().map_or(0.0, |mem| (saturating_sub_bytes(mem.total, mem.free).as_u64()  * 100 / mem.total.as_u64()) as f32) as u8)
+    }
+}
+
+pub struct DateSource {
+}
+
+impl Source for DateSource {
+    fn unit(&self) -> Option<String> {
+        Some("".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+       Value::S({ let mut s = Command::new("sh")
+           .arg("-c")
+               .arg("date | sed -E 's/:[0-9]{2} .*//'").output().map_or("".to_string(), |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); s.pop(); s})
+    }
+}
+
+pub struct WindowSource {
+    max_chars: usize
+}
+
+impl Source for WindowSource {
+    fn unit(&self) -> Option<String> {
+        Some("".to_string())
+    }
+
+    fn get(&mut self) -> Value {
+        let s = Command::new("sh")
+            .arg("-c")
+            .arg("xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null").output().map_or("".to_string(), 
+                |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); 
+        let lines : Vec<&str> = s.split("\n").collect();
+        if lines.len() >= 2 {
+            let mut comm = std::fs::read_to_string(format!("/proc/{}/comm", lines[0])).unwrap_or("".to_string());
+            comm.pop();
+            let s = format!("{} - {}", comm, lines[1]);
+                    Value::S(match s.char_indices().nth(self.max_chars) {
+                        None => s,
+                        Some((idx, _)) => (&s[..idx]).to_string(),
+                    })
+        }
+        else {
+                Value::S("".to_string())
+        }
+    }
+}
+
 
 impl Sources {
 
-  pub fn battery() -> Source {
-      i_source!("%", |s: System| s.battery_life().map_or(0.0, |x| (
-                  if x.remaining_capacity > 1.0 { 100.0 } else { x.remaining_capacity * 100.0})))
+  pub fn battery() -> Box<BatterySource> {
+      Box::new(BatterySource { })
   }
 
-  fn build_cpu(v: Value) -> (Value, SourceData) {
-      match System::new().cpu_load_aggregate() {
-          Ok(r) => (v, SourceData::CPU(r)),
-          Err(_) => (v, SourceData::Nothing),
-      }
+  pub fn cpu() -> Box<CpuSource> {
+      Box::new(CpuSource{ delayed_measurement_opt: None })
+  }
+  pub fn cpu_temp() -> Box<CpuTempSource> {
+      Box::new(CpuTempSource { })
   }
 
-  pub fn cpu() -> Source {
-      Source {
-          unit: Some("%".to_string()),
-          get: |d| {
-              match d {
-                  SourceData::CPU(cpu) =>  {
-                      let cpu = cpu.done().unwrap();
-                      let cpu = cpu.system + cpu.user;
-                      Sources::build_cpu(Value::I((cpu * 100.0) as u8))
-                  },
-                  _ => Sources::build_cpu(Value::I(0)),
-                  
-              }
-          },
-          data: SourceData::Nothing,
-      }
+  pub fn memory() -> Box<MemorySource> {
+      Box::new(MemorySource { })
   }
 
-  pub fn cpu_temp() -> Source {
-      i_source!("°C", |s: System| s.cpu_temp().unwrap_or(0.0))
+  pub fn date() -> Box<DateSource> {
+      Box::new(DateSource { })
   }
 
-  pub fn memory() -> Source {
-      i_source!("%", |s: System| s.memory().map_or(0.0, |mem| (saturating_sub_bytes(mem.total, mem.free).as_u64()  * 100 / mem.total.as_u64()) as f32))
-  }
-
-  pub fn date() -> Source {
-      s_source!("", { let mut s = Command::new("sh")
-          .arg("-c")
-              .arg("date | sed -E 's/:[0-9]{2} .*//'").output().map_or("".to_string(), |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); s.pop(); s})
-  }
-
-  pub fn window(max_chars: usize) -> Source {
-      Source {
-          unit: None, 
-          get: |d| { 
-              let s = Command::new("sh")
-                  .arg("-c")
-                  .arg("xdotool getwindowfocus getwindowpid getwindowname 2>/dev/null").output().map_or("".to_string(), 
-                      |o| String::from_utf8(o.stdout).unwrap_or("".to_string())); 
-              let lines : Vec<&str> = s.split("\n").collect();
-              if lines.len() >= 2 {
-                  let mut comm = std::fs::read_to_string(format!("/proc/{}/comm", lines[0])).unwrap_or("".to_string());
-                  comm.pop();
-                  let s = format!("{} - {}", comm, lines[1]);
-                  match d {
-                      SourceData::U(max) =>
-                          (Value::S(match s.char_indices().nth(*max) {
-                              None => s,
-                              Some((idx, _)) => (&s[..idx]).to_string(),
-                          }), SourceData::U(*max)),
-                      _ => (Value::S(s), SourceData::Nothing)
-                  }
-              }
-              else {
-                  match d {
-                      SourceData::U(max) => (Value::S("".to_string()), SourceData::U(*max)),
-                      _ => (Value::S("".to_string()), SourceData::Nothing),
-                  }
-              }
-          },
-          data: SourceData::U(max_chars),
-      }
+  pub fn window(max_chars: usize) -> Box<WindowSource> {
+      Box::new(WindowSource { max_chars: max_chars })
   }
 }
 
@@ -364,7 +425,7 @@ pub struct ThemedWidgets {
 
 impl ThemedWidgets {
 
-    pub fn simple(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn simple(widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         (widget_position,
          sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
              let fg_bg = palette.get(i);
@@ -376,7 +437,7 @@ impl ThemedWidgets {
              }}).collect())
     }
 
-    pub fn detached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn detached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         (widget_position,
          sources_logos.into_iter().enumerate().map( |(i, source_logo)| {
              let fg_bg = palette.get(i);
@@ -388,15 +449,15 @@ impl ThemedWidgets {
              }}).collect())
     }
 
-    pub fn slash(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn slash(widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         ThemedWidgets::detached(" ", "", widget_position, sources_logos, palette)
     }
 
-    pub fn tab(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn tab(widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         ThemedWidgets::detached(" ", " ", widget_position, sources_logos, palette)
     }
 
-    pub fn attached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn attached(left_separator: &str, right_separator: &str, widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         let sources_logos_len = sources_logos.len();
         let left = widget_position == WidgetPosition::Left;
         (widget_position,
@@ -428,18 +489,18 @@ impl ThemedWidgets {
              }}).collect())
     }
 
-    pub fn powerline(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn powerline(widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         ThemedWidgets::attached("", "", widget_position, sources_logos, palette)
 
     }
 
-    pub fn flames(widget_position: WidgetPosition, sources_logos: Vec<(Source, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
+    pub fn flames(widget_position: WidgetPosition, sources_logos: Vec<(Box<dyn Source>, Logo)>, palette: &Palette) -> (WidgetPosition, Vec<Widget>) {
         ThemedWidgets::attached(" ", " ", widget_position, sources_logos, palette)
     }
 }
 
 pub struct Widget {
-    pub source: Source,
+    pub source: Box<dyn Source>,
     pub prefix: ColoredString,
     pub suffix: ColoredString,
     pub logo: Logo,
@@ -471,19 +532,18 @@ pub enum WidgetPosition {
 
 impl Widget {
     pub async fn draw(&mut self, widget_position: &WidgetPosition) {
-        let value_data = (self.source.get)(&self.source.data);
-        let value = value_data.0;
-        self.source.data = value_data.1;
+        let value = (*self.source).get();
+        let unit = (*self.source).unit();
         let logo = (self.logo)(&value);
         let value_s = match value {
             Value::S(s) => s,
             Value::I(i) => i.to_string()
         };
-        let s = format!("{}{} {}{}{}", self.prefix.to_string(), logo, value_s, self.source.unit.clone().unwrap_or(String::from("")), self.suffix.to_string());
+        let s = format!("{}{} {}{}{}", self.prefix.to_string(), logo, value_s, unit.clone().unwrap_or(String::from("")), self.suffix.to_string());
         if widget_position == &WidgetPosition::Left {
             print!("{}", s);
         } else {
-            let len = format!("{} {}{}", logo, value_s, self.source.unit.clone().unwrap_or(String::from("")), ).chars().count() + self.prefix.len() + self.suffix.len();
+            let len = format!("{} {}{}", logo, value_s, unit.clone().unwrap_or(String::from("")), ).chars().count() + self.prefix.len() + self.suffix.len();
             Ansi::move_back(len);
             print!("{}", s);
             Ansi::move_back(len);
