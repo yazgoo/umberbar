@@ -1,5 +1,7 @@
 # umberbar 🐏  
 
+[![Discord](https://img.shields.io/badge/discord--blue?logo=discord)](https://discord.gg/F684Y8rYwZ)
+
 minimalistic xmobar inspired status bar, in a terminal emulator. 
 
 ![UmberBar Screenshot](screenshot.png)
